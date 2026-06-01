@@ -1,0 +1,17 @@
+/* src/index.css */
+body {
+  margin: 0;
+  background-color: #090d16;
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 9999px;
+}
