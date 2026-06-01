@@ -27,7 +27,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
   
   const scrollTrackerRef = useRef(null);
   const recognitionRef = useRef(null);
-  const silenceTimerRef = useRef(null);       
+  const silenceTimerRef = useRef(null);      
   const shouldBeListeningRef = useRef(false);  
   const isRequestPendingRef = useRef(false); 
 
@@ -201,7 +201,8 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/ai/chat', {
+      // 🌐 LIVE ENDPOINT CONNECTED TO RENDER CLUSTER
+      const response = await fetch('https://studynexus-backend.onrender.com/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userPayload.text })
@@ -266,86 +267,4 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                 <div className={`p-3 rounded-xl max-w-[85%] leading-relaxed group relative ${msg.sender === 'user' ? 'bg-blue-600 text-white font-medium rounded-tr-none' : 'bg-slate-800/60 border border-white/5 text-slate-300 rounded-tl-none whitespace-pre-wrap'}`}>
                   {msg.text}
                   {msg.sender === 'ai' && (
-                    <button onClick={() => speakText(msg.text)} className="absolute -bottom-5 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-cyan-400 flex items-center gap-1 text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-white/10">
-                      <Volume2 size={10} /> Replay Voice
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {isTyping && (
-              <div className="flex w-full justify-start">
-                <div className="bg-slate-800/40 border border-white/5 px-4 py-2.5 rounded-xl rounded-tl-none text-cyan-400 flex items-center gap-2 text-xs font-mono">
-                  <Loader2 size={12} className="animate-spin" />
-                  {loadingText}
-                </div>
-              </div>
-            )}
-            <div ref={scrollTrackerRef} />
-          </div>
-
-          {/* Input Bar */}
-          <div className="p-3 bg-slate-950/50 border-t border-white/10 flex gap-3 items-center">
-            <div className="relative flex items-center justify-center">
-              <AnimatePresence>
-                {shouldBeListeningRef.current && (
-                  <>
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0.5 }}
-                      animate={{ scale: 1.6, opacity: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
-                      className="absolute w-11 h-11 bg-rose-500/30 rounded-xl pointer-events-none"
-                    />
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0.3 }}
-                      animate={{ scale: 2.2, opacity: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ repeat: Infinity, duration: 1.5, delay: 0.4, ease: "easeOut" }}
-                      className="absolute w-11 h-11 bg-rose-500/20 rounded-xl pointer-events-none"
-                    />
-                  </>
-                )}
-              </AnimatePresence>
-
-              <button 
-                onClick={toggleListening}
-                className={`relative z-10 w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-300 transform active:scale-90 ${
-                  shouldBeListeningRef.current 
-                    ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]' 
-                    : 'bg-slate-900 border-white/10 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 shadow-inner'
-                }`}
-                title={shouldBeListeningRef.current ? "Click to stop continuous mode" : "Start continuous voice chat"}
-              >
-                {shouldBeListeningRef.current ? (
-                  <div className="flex items-end justify-center gap-[2.5px] h-4 w-5">
-                    <motion.span animate={{ height: ["4px", "16px", "4px"] }} transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }} className="w-[3px] bg-white rounded-full" />
-                    <motion.span animate={{ height: ["4px", "12px", "4px"] }} transition={{ repeat: Infinity, duration: 0.45, ease: "easeInOut", delay: 0.15 }} className="w-[3px] bg-white rounded-full" />
-                    <motion.span animate={{ height: ["4px", "18px", "4px"] }} transition={{ repeat: Infinity, duration: 0.7, ease: "easeInOut", delay: 0.05 }} className="w-[3px] bg-white rounded-full" />
-                    <motion.span animate={{ height: ["4px", "10px", "4px"] }} transition={{ repeat: Infinity, duration: 0.5, ease: "easeInOut", delay: 0.2 }} className="w-[3px] bg-white rounded-full" />
-                  </div>
-                ) : (
-                  <Mic size={16} />
-                )}
-              </button>
-            </div>
-
-            <input 
-              type="text" 
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={shouldBeListeningRef.current ? "Hands-free active... speak freely" : "Type or click mic to talk..."} 
-              className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none text-white placeholder:text-slate-500 transition-colors focus:border-white/20"
-            />
-            
-            <button onClick={() => handleDispatchMessage()} style={{ background: 'linear-gradient(to right, #2563eb, #06b6d4)' }} className="p-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center shadow-lg shadow-blue-500/10">
-              <Send size={16} className="text-white" />
-            </button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+                    <button onClick={() => speakText(msg.text)} className="absolute -bottom-5 right-1 opacity-0 group-hover:opacity-

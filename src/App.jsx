@@ -92,19 +92,39 @@ export default function App() {
           </Routes>
         </main>
 
-        {/* COPILOT FLOATING CONTROL ACTIVATION BUTTON */}
+        {/* UPGRADED COPILOT FLOATING CONTROL ACTIVATION BUTTON */}
         <motion.button 
-          whileHover={{ scale: 1.06, y: -2 }}
-          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, y: 50, scale: 0.8 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          whileHover={{ 
+            scale: 1.15, 
+            rotate: [0, -3, 3, 0], 
+            y: -6 
+          }}
+          whileTap={{ scale: 0.92 }}
+          transition={{ type: "spring", stiffness: 350, damping: 12 }}
           onClick={() => setChatOpen(!isChatOpen)}
           style={{
-            background: isChatOpen ? '#e11d48' : 'linear-gradient(to right, #2563eb, #0891b2)',
-            boxShadow: isChatOpen ? '0 20px 25px -5px rgba(225, 29, 72, 0.2)' : '0 20px 25px -5px rgba(37, 99, 235, 0.2)'
+            background: isChatOpen 
+              ? '#e11d48' 
+              : 'linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #60a5fa 100%)',
+            boxShadow: isChatOpen 
+              ? '0 0 35px 6px rgba(225, 29, 72, 0.45)' 
+              : '0 0 30px 8px rgba(37, 99, 235, 0.35)',
+            zIndex: 50 
           }}
-          className="fixed bottom-8 right-8 px-5 h-14 rounded-full flex items-center gap-2.5 font-semibold text-sm text-white z-50 group transition-all duration-300"
+          className="fixed bottom-8 right-8 px-6 h-16 rounded-full flex items-center gap-3 font-semibold text-sm text-white group transition-all duration-300"
         >
-          {isChatOpen ? <X size={18} /> : <Sparkles size={18} />}
-          <span>{isChatOpen ? 'Close Assistant' : 'ASK SARA'}</span>
+          <div className={`transition-transform duration-500 ${isChatOpen ? 'rotate-180' : 'rotate-0'}`}>
+            {isChatOpen ? (
+              <X size={20} />
+            ) : (
+              <Sparkles size={20} className="text-amber-300 animate-pulse" />
+            )}
+          </div>
+          <span className="font-extrabold tracking-tight uppercase">
+            {isChatOpen ? 'Close Assistant' : 'ASK SARA'}
+          </span>
         </motion.button>
 
         <AIChatPopup isOpen={isChatOpen} onClose={() => setChatOpen(false)} />
