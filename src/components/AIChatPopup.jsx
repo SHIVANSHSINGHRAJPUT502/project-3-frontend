@@ -240,7 +240,8 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.9, y: 40 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 40 }}
-          className="fixed bottom-24 right-6 w-96 h-[530px] bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden text-white"
+          /* 💡 FIXED: Fluid multi-device container scaling bounds */
+          className="fixed bottom-20 md:bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 h-[70vh] sm:h-[530px] bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden text-white"
         >
           {/* Header */}
           <div style={{ background: 'linear-gradient(to right, rgba(37, 99, 235, 0.15), rgba(147, 51, 234, 0.15))' }} className="p-4 border-b border-white/10 flex items-center justify-between">
