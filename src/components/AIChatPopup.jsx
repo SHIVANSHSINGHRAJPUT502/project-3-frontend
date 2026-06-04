@@ -116,9 +116,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel(); 
 
-    // Intercept raw web links and replace them in the audio channel
     let vocalText = text.replace(/(https?:\/\/[^\s]+)/g, 'Check out the live link on your screen!');
-
     let processedText = vocalText.replace(/[*#`_\-]/g, '').trim();
     if (!processedText.toLowerCase().startsWith('hey') && !processedText.toLowerCase().startsWith('oh')) {
       processedText = "Alright! " + processedText;
@@ -200,33 +198,19 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-      // 🏎️ SECURE VAULT ACCESS: Resolves dynamic environmental key parameters from Vercel
-      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY; 
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      // 🌐 SAFE ROUTING BACKEND: Dispatches messages cleanly to your Render production API
+      const response = await fetch('https://studynexus-backend.onrender.com/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // 🧠 SYSTEM INSTRUCTION MATRIX: Formats personality constraints securely
-          systemInstruction: {
-            parts: [{ 
-              text: "You are SARA (StudyNexus Autonomous Response Assistant), a brilliant, helpful, and witty AI companion built into the StudyNexus platform. You were created and developed entirely by Shivansh, a talented Computer Science and Engineering developer. If anyone asks who created you, owns you, or built you, proudly state that Shivansh is your creator and owner. Keep your responses engaging, adaptive, and supportive." 
-            }]
-          },
-          contents: [{ parts: [{ text: userPayload.text }] }]
-        })
+        body: JSON.stringify({ message: userPayload.text })
       });
 
       if (response.ok) {
         const data = await response.json();
-        
-        // Safely extract the raw generated layout content from Google's native data tree
-        const aiReply = data.candidates[0].content.parts[0].text;
-        
-        speakText(aiReply);
-        setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
+        setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
+        speakText(data.reply);
       } else if (response.status === 429) {
-        setMessages((prev) => [...prev, { sender: 'ai', text: "⚠️ Google's free-tier limit reached. Let's take a 30-second breather before talking!" }]);
+        setMessages((prev) => [...prev, { sender: 'ai', text: "⚠️ Server limit reached. Let's take a 30-second breather!" }]);
         window.speechSynthesis.cancel();
       } else {
         setMessages((prev) => [...prev, { sender: 'ai', text: "❌ Connection handshake dropped." }]);
@@ -263,7 +247,6 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
               <div>
                 <h3 className="font-semibold text-sm text-white">ASK SARAH</h3>
                 <span className={`text-[10px] flex items-center gap-1 font-mono ${shouldBeListeningRef.current ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                  {/* 🛠️ FIXED: Removed stray inline parsing bugs to ensure fluid JSX rendering */}
                   <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`} /> 
                   {voiceStatus}
                 </span>
