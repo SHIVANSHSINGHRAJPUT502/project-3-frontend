@@ -20,15 +20,15 @@ export const SemesterView = () => {
         setLoading(true);
         setError(null);
         
-        // Requesting data from your local Node API gateway (Port 5000)
-        const response = await axios.get(`http://localhost:5000/api/subjects/${semId}`, {
+        // 🌐 FIXED: Replaced localhost with your live production Render gateway link
+        const response = await axios.get(`https://studynexus-backend.onrender.com/api/subjects/${semId}`, {
           withCredentials: true // Crucial for cloud session cookie passing later
         });
         
         setSubjects(response.data);
       } catch (err) {
         console.error("API Fetch Error:", err);
-        setError("Failed to connect to the cloud API microservice. Is your backend server running?");
+        setError("Failed to connect to the cloud API microservice. Verify if your Render instance is fully built and running.");
       } finally {
         setLoading(false);
       }
@@ -59,7 +59,8 @@ export const SemesterView = () => {
       {/* ❌ Case B: Backend Is Offline or Crashed (Error State) */}
       {error && !loading && (
         <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-6 max-w-xl mx-auto flex gap-4 items-start">
-          <ShieldAlert className="text-rose-400 shrink-0" size={24} />
+          {/* 🛠 FIXED: Replaced unimported ShieldAlert icon with your active AlertTriangle icon */}
+          <AlertTriangle className="text-rose-400 shrink-0" size={24} />
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-rose-200">Gateway Timeout Connection Error</h4>
             <p className="text-xs text-slate-400 leading-relaxed">{error}</p>
@@ -71,7 +72,7 @@ export const SemesterView = () => {
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {subjects.map((subject) => (
-            <GlassCard key={subject.id} className="relative group border-white/5 hover:border-blue-500/20">
+            <GlassCard key={subject.id || subject._id} className="relative group border-white/5 hover:border-blue-500/20">
               <div 
                 style={{
                   background: subject.colorKey === "blue" ? 'linear-gradient(to bottom, #2563eb, #06b6d4)' :
