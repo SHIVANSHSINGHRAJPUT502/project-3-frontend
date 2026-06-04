@@ -200,15 +200,14 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-      // 🏎️ DIRECT ROUTING: Hit Google Gemini Flash directly for 2-second responses
-      // ⚠️ REPLACE THIS MOCK STRING WITH YOUR ACTUAL GEMINI API KEY FROM AI STUDIO
-      const GEMINI_API_KEY = "AIzaSyYourActualKeyGoesHere_LookForYourKey"; 
+      // 🏎️ SECURE VAULT ACCESS: Resolves dynamic environmental key parameters from Vercel
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || process.env.REACT_APP_GEMINI_API_KEY; 
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // 🧠 SYSTEM INSTRUCTION BLOCK: Seals your creator identity permanently into SARA
+          // 🧠 SYSTEM INSTRUCTION MATRIX: Formats personality constraints securely
           systemInstruction: {
             parts: [{ 
               text: "You are SARA (StudyNexus Autonomous Response Assistant), a brilliant, helpful, and witty AI companion built into the StudyNexus platform. You were created and developed entirely by Shivansh, a talented Computer Science and Engineering developer. If anyone asks who created you, owns you, or built you, proudly state that Shivansh is your creator and owner. Keep your responses engaging, adaptive, and supportive." 
@@ -221,7 +220,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
       if (response.ok) {
         const data = await response.json();
         
-        // Extract content cleanly from the native Google API tree structure
+        // Safely extract the raw generated layout content from Google's native data tree
         const aiReply = data.candidates[0].content.parts[0].text;
         
         speakText(aiReply);
@@ -255,7 +254,6 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, scale: 0.9, y: 40 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 40 }}
-          /* 💡 FIXED: Fluid multi-device container scaling bounds */
           className="fixed bottom-20 md:bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:w-96 h-[70vh] sm:h-[530px] bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden text-white"
         >
           {/* Header */}
@@ -265,7 +263,8 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
               <div>
                 <h3 className="font-semibold text-sm text-white">ASK SARAH</h3>
                 <span className={`text-[10px] flex items-center gap-1 font-mono ${shouldBeListeningRef.current ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`}px /> 
+                  {/* 🛠️ FIXED: Removed stray inline parsing bugs to ensure fluid JSX rendering */}
+                  <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`} /> 
                   {voiceStatus}
                 </span>
               </div>
