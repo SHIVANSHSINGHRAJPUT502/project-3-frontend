@@ -200,17 +200,32 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-      // 🌐 LIVE ENDPOINT CONNECTED TO YOUR PRODUCTION RENDER CLUSTER
-      const response = await fetch('https://studynexus-backend.onrender.com/api/ai/chat', {
+      // 🏎️ DIRECT ROUTING: Hit Google Gemini Flash directly for 2-second responses
+      // ⚠️ REPLACE THIS MOCK STRING WITH YOUR ACTUAL GEMINI API KEY FROM AI STUDIO
+      const GEMINI_API_KEY = "AIzaSyYourActualKeyGoesHere_LookForYourKey"; 
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userPayload.text })
+        body: JSON.stringify({
+          // 🧠 SYSTEM INSTRUCTION BLOCK: Seals your creator identity permanently into SARA
+          systemInstruction: {
+            parts: [{ 
+              text: "You are SARA (StudyNexus Autonomous Response Assistant), a brilliant, helpful, and witty AI companion built into the StudyNexus platform. You were created and developed entirely by Shivansh, a talented Computer Science and Engineering developer. If anyone asks who created you, owns you, or built you, proudly state that Shivansh is your creator and owner. Keep your responses engaging, adaptive, and supportive." 
+            }]
+          },
+          contents: [{ parts: [{ text: userPayload.text }] }]
+        })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
-        speakText(data.reply);
+        
+        // Extract content cleanly from the native Google API tree structure
+        const aiReply = data.candidates[0].content.parts[0].text;
+        
+        speakText(aiReply);
+        setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
       } else if (response.status === 429) {
         setMessages((prev) => [...prev, { sender: 'ai', text: "⚠️ Google's free-tier limit reached. Let's take a 30-second breather before talking!" }]);
         window.speechSynthesis.cancel();
@@ -250,7 +265,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
               <div>
                 <h3 className="font-semibold text-sm text-white">ASK SARAH</h3>
                 <span className={`text-[10px] flex items-center gap-1 font-mono ${shouldBeListeningRef.current ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`} /> 
+                  <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`}px /> 
                   {voiceStatus}
                 </span>
               </div>
