@@ -8,7 +8,7 @@ import { DashboardView } from "./components/DashboardView.jsx";
 import { SemesterView } from './components/SemesterView.jsx';
 import { RelaxZoneView } from './components/RelaxZoneView.jsx';
 import { AIChatPopup } from './components/AIChatPopup.jsx';
-import{ AdminPanel} from './components/AdminPanel.jsx';
+import AdminPanel from './components/AdminPanel.jsx';
 
 export default function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
