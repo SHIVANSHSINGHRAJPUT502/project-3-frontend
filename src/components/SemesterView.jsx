@@ -20,8 +20,8 @@ export const SemesterView = () => {
         setLoading(true);
         setError(null);
         
-        // 🌐 LIVE ENDPOINT: Connected directly to your active Render Gateway
-        const response = await axios.get(`https://studynexus-backend.onrender.com/api/subjects/${semId}`, {
+        // 🌐 LIVE ENDPOINT: Routed straight to your active Railway gateway container mapping to PDF datasets
+        const response = await axios.get(`https://project-3-backend-production-8932.up.railway.app/api/notes/${semId}`, {
           withCredentials: true 
         });
         
@@ -70,7 +70,6 @@ export const SemesterView = () => {
       {/* 🚀 Case C: Successful Data Delivery */}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* 💡 FIXED: Prevent blackout screen if MongoDB returns an empty array */}
           {subjects.length === 0 ? (
             <div className="col-span-full text-center py-16 border border-dashed border-white/5 rounded-2xl bg-slate-950/40 max-w-md mx-auto p-6">
               <AlertTriangle className="text-amber-400 mx-auto mb-3" size={28} />
@@ -82,13 +81,7 @@ export const SemesterView = () => {
               <GlassCard key={subject._id || subject.id} className="relative group border-white/5 hover:border-blue-500/20">
                 <div 
                   style={{
-                    background: subject.colorKey === "blue" ? 'linear-gradient(to bottom, #2563eb, #06b6d4)' :
-                                subject.colorKey === "purple" ? 'linear-gradient(to bottom, #9333ea, #ec4899)' :
-                                subject.colorKey === "amber" ? 'linear-gradient(to bottom, #d97706, #f97316)' :
-                                subject.colorKey === "emerald" ? 'linear-gradient(to bottom, #059669, #14b8a6)' :
-                                subject.colorKey === "indigo" ? 'linear-gradient(to bottom, #4f46e5, #06b6d4)' :
-                                subject.colorKey === "rose" ? 'linear-gradient(to bottom, #e11d48, #f43f5e)' :
-                                'linear-gradient(to bottom, #0891b2, #3b82f6)'
+                    background: 'linear-gradient(to bottom, #2563eb, #06b6d4)'
                   }}
                   className="absolute top-0 left-0 w-1.5 h-full" 
                 />
@@ -96,28 +89,30 @@ export const SemesterView = () => {
                 <div className="pl-2 space-y-5">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-mono font-bold px-2 py-1 bg-slate-800/80 border border-white/5 rounded text-slate-400 shadow-inner">
-                      {subject.code}
+                      {subject.subject || "CORE"}
                     </span>
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
                       <Clock size={12} className="text-slate-500" />
-                      {subject.credits} Credits
+                      Semester {subject.semester}
                     </div>
                   </div>
                   
                   <div>
-                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-200 line-clamp-1">
-                      {subject.name}
+                    <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-200 line-clamp-2">
+                      {subject.title}
                     </h3>
                     <p className="text-[11px] text-slate-500 font-medium mt-1 uppercase tracking-wider">Verified MERN Payload</p>
                   </div>
 
                   <div className="flex gap-2.5 pt-1">
-                    <button className="flex-1 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95">
-                      <BookOpen size={13} className="text-slate-400" /> Notes
-                    </button>
-                    <button className="flex-1 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-center rounded-xl text-xs font-bold text-blue-400 border border-blue-500/20 transition-all flex items-center justify-center gap-1.5 active:scale-95">
-                      📝 PYQs
-                    </button>
+                    <a 
+                      href={subject.s3Url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex-1 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <BookOpen size={13} className="text-slate-400" /> View Document
+                    </a>
                   </div>
                 </div>
               </GlassCard>
