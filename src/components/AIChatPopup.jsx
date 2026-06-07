@@ -198,8 +198,13 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
+<<<<<<< HEAD
       // 🌐 SAFE ROUTING BACKEND: Dispatches messages cleanly to your Render production API
       const response = await fetch('https://studynexus-backend.onrender.com/api/ai/chat', {
+=======
+      // 🌐 FIXED: Routed straight to your active production Railway instance gateway
+      const response = await fetch('https://project-3-backend-production-8932.up.railway.app/api/ai/chat', {
+>>>>>>> ffc110d (chore: map SARA ai routing channels directly onto production railway cloud endpoint)
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userPayload.text })
