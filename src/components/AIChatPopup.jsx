@@ -198,13 +198,8 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-<<<<<<< HEAD
-      // 🌐 SAFE ROUTING BACKEND: Dispatches messages cleanly to your Render production API
-      const response = await fetch('https://studynexus-backend.onrender.com/api/ai/chat', {
-=======
       // 🌐 FIXED: Routed straight to your active production Railway instance gateway
       const response = await fetch('https://project-3-backend-production-8932.up.railway.app/api/ai/chat', {
->>>>>>> ffc110d (chore: map SARA ai routing channels directly onto production railway cloud endpoint)
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userPayload.text })
@@ -252,7 +247,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
               <div>
                 <h3 className="font-semibold text-sm text-white">ASK SARAH</h3>
                 <span className={`text-[10px] flex items-center gap-1 font-mono ${shouldBeListeningRef.current ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-cyan-400'}`} /> 
+                  <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-rose-500'}`} /> 
                   {voiceStatus}
                 </span>
               </div>
