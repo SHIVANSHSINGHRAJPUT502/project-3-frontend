@@ -169,15 +169,24 @@ function UploadSection({ onSuccess }) {
 
   const handleFile = (e) => {
     const f = e.target.files[0];
-    if (f && f.type === "application/pdf") setFile(f);
-    else setMsg("Only PDF files allowed");
+    if (f && f.type === "application/pdf") {
+      setFile(f);
+      setMsg("");
+    } else {
+      setMsg("Only PDF files allowed");
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     const f = e.dataTransfer.files[0];
-    if (f && f.type === "application/pdf") { setFile(f); setMsg(""); }
-    else setMsg("Only PDF files allowed");
+    if (f && f.type === "application/pdf") { 
+      setFile(f); 
+      setMsg(""); 
+    } else { 
+      setMsg("Only PDF files allowed"); 
+    }
   };
 
   const upload = async () => {
@@ -187,28 +196,37 @@ function UploadSection({ onSuccess }) {
     setUploading(true); setMsg(""); setProgress(10);
     try {
       const fd = new FormData();
+      // Keeps your backend processing intact
       fd.append("pdf", file);
+      // Tells Cloudinary via your backend to accept this under your new unsigned rules
+      fd.append("upload_preset", "studynexus_preset");
       fd.append("title", form.title);
       fd.append("semester", form.semester);
       fd.append("subject", form.subject);
+      
       setProgress(40);
       const res = await fetch(`${API}/api/admin/pdfs/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
         body: fd,
       });
+      
       setProgress(90);
       if (!res.ok) throw new Error(await res.text());
+      
       setProgress(100);
       setMsg("✅ Uploaded successfully!");
-      setFile(null); setForm({ title: "", semester: "", subject: "" });
-      fileRef.current.value = "";
+      setFile(null); 
+      setForm({ title: "", semester: "", subject: "" });
+      if (fileRef.current) fileRef.current.value = "";
       onSuccess();
     } catch (err) {
       setMsg("❌ Upload failed: " + err.message);
     } finally {
       setUploading(false);
-      setTimeout(() => setProgress(0), 1000);
+      setTimeout(() => {
+        if (fileRef.current) setProgress(0);
+      }, 1000);
     }
   };
 
