@@ -225,7 +225,7 @@ function StatsTab() {
 // ── PDF UPLOAD SECTION ────────────────────────────────────────────────────────
 function UploadSection({ onSuccess }) {
   const [file, setFile] = useState(null);
-  const [form, setForm] = useState({ title: "", semester: "", subject: "" });
+const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "notes" });
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [msg, setMsg] = useState("");
@@ -253,6 +253,8 @@ function UploadSection({ onSuccess }) {
       fd.append("title", form.title);
       fd.append("semester", form.semester);
       fd.append("subject", form.subject);
+      fd.append("subject", form.subject);
+      fd.append("type", form.type);
       setProgress(40);
       const res = await fetch(`${API}/api/admin/pdfs/upload`, {
         method: "POST",
@@ -293,11 +295,17 @@ function UploadSection({ onSuccess }) {
           </div>
         )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-        <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-        <Input placeholder="Semester (1-8)" type="number" min="1" max="8" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
-        <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-      </div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
+  <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+  <Input placeholder="Semester (1-8)" type="number" min="1" max="8" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
+  <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
+  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+    style={{ background: S.input, border: `1px solid ${S.border}`, borderRadius: "8px", padding: "9px 12px", color: S.text, fontSize: "14px", outline: "none" }}>
+    <option value="notes">Notes</option>
+    <option value="pyq">PYQ</option>
+    <option value="syllabus">Syllabus</option>
+  </select>
+</div>
       {progress > 0 && (
         <div style={{ height: "4px", background: S.border, borderRadius: "4px", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #2563eb, #06b6d4)", borderRadius: "4px", transition: "width 0.3s" }} />
@@ -315,7 +323,7 @@ function UploadSection({ onSuccess }) {
 
 // ── MANUAL URL SECTION ────────────────────────────────────────────────────────
 function ManualSection({ onSuccess }) {
-  const [form, setForm] = useState({ title: "", semester: "", subject: "", s3Url: "" });
+const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "notes", s3Url: "" });
   const [adding, setAdding] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -336,12 +344,18 @@ function ManualSection({ onSuccess }) {
         <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: S.muted2, textTransform: "uppercase", letterSpacing: "0.08em" }}>Add via URL</p>
         <Badge color={S.muted}>Manual</Badge>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-        <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-        <Input placeholder="Semester (1-8)" type="number" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
-        <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-        <Input placeholder="PDF URL" value={form.s3Url} onChange={e => setForm(f => ({ ...f, s3Url: e.target.value }))} />
-      </div>
+     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+  <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+  <Input placeholder="Semester (1-8)" type="number" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
+  <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
+  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+    style={{ background: S.input, border: `1px solid ${S.border}`, borderRadius: "8px", padding: "9px 12px", color: S.text, fontSize: "14px", outline: "none" }}>
+    <option value="notes">Notes</option>
+    <option value="pyq">PYQ</option>
+    <option value="syllabus">Syllabus</option>
+  </select>
+  <Input placeholder="PDF URL" value={form.s3Url} onChange={e => setForm(f => ({ ...f, s3Url: e.target.value }))} style={{ gridColumn: "1 / -1" }} />
+</div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <Btn onClick={add} disabled={adding}>{adding ? "Adding..." : "Add PDF"}</Btn>
         {msg && <span style={{ fontSize: "13px", color: msg.includes("✅") ? S.success : S.danger }}>{msg}</span>}
@@ -394,8 +408,11 @@ function PdfsTab() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: "0 0 3px", fontWeight: 500, fontSize: "14px", color: S.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdf.title}</p>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                  <Badge color={S.purple}>Sem {pdf.semester}</Badge>
-                  <span style={{ fontSize: "12px", color: S.muted }}>{pdf.subject}</span>
+                 <Badge color={S.purple}>Sem {pdf.semester}</Badge>
+                 <span style={{ fontSize: "12px", color: S.muted }}>{pdf.subject}</span>
+                <Badge color={pdf.type === 'notes' ? S.accent : pdf.type === 'pyq' ? S.purple : S.success}>
+               {pdf.type || 'notes'}
+              </Badge>
                 </div>
               </div>
               <a href={`https://docs.google.com/viewer?url=${encodeURIComponent(pdf.s3Url)}`} target="_blank" rel="noreferrer" style={{ fontSize: "12px", color: S.accent, textDecoration: "none", padding: "4px 10px", border: `1px solid ${S.accent}44`, borderRadius: "6px" }}>View</a>
