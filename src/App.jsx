@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SubjectView } from './components/SubjectView.jsx';
+
 
 import { DashboardView } from "./components/DashboardView.jsx";
 import { SemesterView } from './components/SemesterView.jsx';
@@ -121,6 +123,7 @@ export default function App() {
             <Route path="/" element={<DashboardView />} />
             <Route path="/semester/:semId" element={<SemesterView />} />
             <Route path="/relax" element={<RelaxZoneView />} />
+            <Route path="/subject/:semId/:subjectName" element={<SubjectView />} />
           </Routes>
         </main>
 
