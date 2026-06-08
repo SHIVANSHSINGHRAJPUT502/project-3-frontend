@@ -93,6 +93,17 @@ function Badge({ children, color = S.accent }) {
   );
 }
 
+function StatCard({ label, value, color = S.accent, icon }) {
+  return (
+    <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", padding: "1.5rem", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 0, right: 0, width: "80px", height: "80px", background: color + "08", borderRadius: "0 14px 0 80px" }} />
+      <p style={{ fontSize: "12px", color: S.muted, margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</p>
+      <p style={{ fontSize: "36px", fontWeight: 700, margin: 0, color, lineHeight: 1 }}>{value ?? "—"}</p>
+      {icon && <p style={{ fontSize: "24px", position: "absolute", top: "1rem", right: "1rem", margin: 0, opacity: 0.5 }}>{icon}</p>}
+    </div>
+  );
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function Login({ onLogin }) {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -114,7 +125,7 @@ function Login({ onLogin }) {
       <div style={{ background: S.card, border: `1px solid ${S.border2}`, borderRadius: "20px", padding: "2.5rem", width: "100%", maxWidth: "400px", boxShadow: "0 0 60px rgba(59,130,246,0.08)" }}>
         <div style={{ marginBottom: "2rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1.5rem" }}>
-            <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "18px", boxShadow: "0 0 20px rgba(37,99,235,0.4)" }}>Ω</div>
+            <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "18px", boxShadow: "0 0 20px rgba(37,99,235,0.4)" }}>&#937;</div>
             <div>
               <p style={{ margin: 0, fontWeight: 700, fontSize: "16px", color: S.text }}>StudyNexus</p>
               <p style={{ margin: 0, fontSize: "11px", color: S.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>Admin Portal</p>
@@ -138,7 +149,7 @@ function Login({ onLogin }) {
             </div>
           )}
           <button onClick={submit} disabled={loading} style={{ padding: "11px", borderRadius: "10px", background: loading ? S.accent + "80" : "linear-gradient(135deg, #2563eb, #06b6d4)", border: "none", color: "#fff", fontWeight: 600, fontSize: "14px", cursor: loading ? "not-allowed" : "pointer", marginTop: "4px", transition: "all 0.2s", boxShadow: "0 0 20px rgba(37,99,235,0.3)" }}>
-            {loading ? "Signing in…" : "Sign in →"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </div>
       </div>
@@ -146,14 +157,67 @@ function Login({ onLogin }) {
   );
 }
 
-// ── STAT CARD ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, color = S.accent, icon }) {
+// ── STATS TAB ─────────────────────────────────────────────────────────────────
+function StatsTab() {
+  const [stats, setStats] = useState(null);
+  const [services, setServices] = useState([
+    { label: "Frontend", sub: "Vercel · React + Vite", status: "checking" },
+    { label: "Backend", sub: "Railway · Node + Express", status: "checking" },
+    { label: "Database", sub: "MongoDB Atlas", status: "checking" },
+    { label: "AI (Sara)", sub: "Gemini API", status: "checking" },
+    { label: "Storage", sub: "Cloudinary", status: "checking" },
+  ]);
+
+  const checkServices = async () => {
+    setServices(s => s.map(svc => ({ ...svc, status: "checking" })));
+    const results = await Promise.allSettled([
+      fetch("https://studynexus-psi.vercel.app", { mode: "no-cors" }),
+      fetch(`${API}/health`),
+      fetch(`${API}/health`),
+      fetch(`${API}/api/ai/health`),
+      fetch(`${API}/health`),
+    ]);
+    setServices(prev => prev.map((svc, i) => ({
+      ...svc,
+      status: results[i].status === "fulfilled" ? "live" : "down"
+    })));
+  };
+
+  useEffect(() => {
+    apiFetch("/api/admin/stats").then(setStats).catch(() => {});
+    checkServices();
+  }, []);
+
+  const statusColor = (s) => s === "live" ? S.success : s === "down" ? S.danger : S.warning;
+  const statusLabel = (s) => s === "live" ? "Live" : s === "down" ? "Down" : "Checking...";
+
   return (
-    <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", padding: "1.5rem", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, right: 0, width: "80px", height: "80px", background: color + "08", borderRadius: "0 14px 0 80px" }} />
-      <p style={{ fontSize: "12px", color: S.muted, margin: "0 0 12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</p>
-      <p style={{ fontSize: "36px", fontWeight: 700, margin: 0, color, lineHeight: 1 }}>{value ?? "—"}</p>
-      {icon && <p style={{ fontSize: "24px", position: "absolute", top: "1rem", right: "1rem", margin: 0, opacity: 0.5 }}>{icon}</p>}
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+        <StatCard label="Total users" value={stats?.users} color={S.accent} icon="👤" />
+        <StatCard label="Total PDFs" value={stats?.pdfs} color={S.success} icon="📄" />
+        <StatCard label="Platform" value="Live" color={S.purple} icon="🚀" />
+      </div>
+      <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", padding: "1.5rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+          <p style={{ fontWeight: 600, margin: 0, color: S.text }}>Stack status</p>
+          <button onClick={checkServices} style={{ fontSize: "12px", color: S.accent, background: "transparent", border: `1px solid ${S.accent}44`, borderRadius: "6px", padding: "4px 10px", cursor: "pointer" }}>
+            Refresh
+          </button>
+        </div>
+        {services.map((item, i) => (
+          <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < services.length - 1 ? `1px solid ${S.border}` : "none" }}>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: 500, color: S.text }}>{item.label}</p>
+              <p style={{ margin: 0, fontSize: "12px", color: S.muted }}>{item.sub}</p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: statusColor(item.status), boxShadow: `0 0 6px ${statusColor(item.status)}` }} />
+              <span style={{ fontSize: "12px", color: statusColor(item.status) }}>{statusLabel(item.status)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -169,65 +233,41 @@ function UploadSection({ onSuccess }) {
 
   const handleFile = (e) => {
     const f = e.target.files[0];
-    if (f && f.type === "application/pdf") {
-      setFile(f);
-      setMsg("");
-    } else {
-      setMsg("Only PDF files allowed");
-      if (fileRef.current) fileRef.current.value = "";
-    }
+    if (f && f.type === "application/pdf") { setFile(f); setMsg(""); }
+    else { setMsg("Only PDF files allowed"); if (fileRef.current) fileRef.current.value = ""; }
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     const f = e.dataTransfer.files[0];
-    if (f && f.type === "application/pdf") { 
-      setFile(f); 
-      setMsg(""); 
-    } else { 
-      setMsg("Only PDF files allowed"); 
-    }
+    if (f && f.type === "application/pdf") { setFile(f); setMsg(""); }
+    else { setMsg("Only PDF files allowed"); }
   };
 
   const upload = async () => {
-    if (!file || !form.title || !form.semester || !form.subject) {
-      setMsg("Fill all fields and select a PDF"); return;
-    }
+    if (!file || !form.title || !form.semester || !form.subject) { setMsg("Fill all fields and select a PDF"); return; }
     setUploading(true); setMsg(""); setProgress(10);
     try {
       const fd = new FormData();
-      // Keeps your backend processing intact
       fd.append("pdf", file);
-      // Tells Cloudinary via your backend to accept this under your new unsigned rules
-      fd.append("upload_preset", "studynexus_preset");
       fd.append("title", form.title);
       fd.append("semester", form.semester);
       fd.append("subject", form.subject);
-      
       setProgress(40);
       const res = await fetch(`${API}/api/admin/pdfs/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
         body: fd,
       });
-      
       setProgress(90);
       if (!res.ok) throw new Error(await res.text());
-      
       setProgress(100);
       setMsg("✅ Uploaded successfully!");
-      setFile(null); 
-      setForm({ title: "", semester: "", subject: "" });
+      setFile(null); setForm({ title: "", semester: "", subject: "" });
       if (fileRef.current) fileRef.current.value = "";
       onSuccess();
-    } catch (err) {
-      setMsg("❌ Upload failed: " + err.message);
-    } finally {
-      setUploading(false);
-      setTimeout(() => {
-        if (fileRef.current) setProgress(0);
-      }, 1000);
-    }
+    } catch (err) { setMsg("❌ Upload failed: " + err.message); }
+    finally { setUploading(false); setTimeout(() => setProgress(0), 1000); }
   };
 
   return (
@@ -236,14 +276,8 @@ function UploadSection({ onSuccess }) {
         <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: S.muted2, textTransform: "uppercase", letterSpacing: "0.08em" }}>Upload PDF to Cloudinary</p>
         <Badge color={S.purple}>Cloudinary</Badge>
       </div>
-
-      {/* Drop zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={e => e.preventDefault()}
-        onClick={() => fileRef.current.click()}
-        style={{ border: `2px dashed ${file ? S.success : S.border2}`, borderRadius: "12px", padding: "2rem", textAlign: "center", cursor: "pointer", background: file ? S.success + "08" : S.surface, transition: "all 0.2s" }}
-      >
+      <div onDrop={handleDrop} onDragOver={e => e.preventDefault()} onClick={() => fileRef.current.click()}
+        style={{ border: `2px dashed ${file ? S.success : S.border2}`, borderRadius: "12px", padding: "2rem", textAlign: "center", cursor: "pointer", background: file ? S.success + "08" : S.surface, transition: "all 0.2s" }}>
         <input ref={fileRef} type="file" accept=".pdf" onChange={handleFile} style={{ display: "none" }} />
         {file ? (
           <div>
@@ -253,34 +287,25 @@ function UploadSection({ onSuccess }) {
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: "32px", margin: "0 0 8px" }}>☁️</p>
+            <p style={{ fontSize: "32px", margin: "0 0 8px" }}>&#9729;&#65039;</p>
             <p style={{ margin: "0 0 4px", color: S.muted2, fontSize: "14px", fontWeight: 500 }}>Drop PDF here or click to browse</p>
             <p style={{ margin: 0, fontSize: "12px", color: S.muted }}>Max 20MB · PDF only</p>
           </div>
         )}
       </div>
-
-      {/* Fields */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
         <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
         <Input placeholder="Semester (1-8)" type="number" min="1" max="8" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
         <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
       </div>
-
-      {/* Progress bar */}
       {progress > 0 && (
         <div style={{ height: "4px", background: S.border, borderRadius: "4px", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: `linear-gradient(90deg, #2563eb, #06b6d4)`, borderRadius: "4px", transition: "width 0.3s" }} />
+          <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #2563eb, #06b6d4)", borderRadius: "4px", transition: "width 0.3s" }} />
         </div>
       )}
-
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <button
-          onClick={upload}
-          disabled={uploading}
-          style={{ padding: "10px 20px", borderRadius: "8px", background: uploading ? S.accent + "60" : "linear-gradient(135deg, #2563eb, #06b6d4)", border: "none", color: "#fff", fontWeight: 600, fontSize: "13px", cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s" }}
-        >
-          {uploading ? "Uploading…" : "⬆ Upload to Cloudinary"}
+        <button onClick={upload} disabled={uploading} style={{ padding: "10px 20px", borderRadius: "8px", background: uploading ? S.accent + "60" : "linear-gradient(135deg, #2563eb, #06b6d4)", border: "none", color: "#fff", fontWeight: 600, fontSize: "13px", cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
+          {uploading ? "Uploading..." : "Upload to Cloudinary"}
         </button>
         {msg && <span style={{ fontSize: "13px", color: msg.includes("✅") ? S.success : S.danger }}>{msg}</span>}
       </div>
@@ -318,7 +343,7 @@ function ManualSection({ onSuccess }) {
         <Input placeholder="PDF URL" value={form.s3Url} onChange={e => setForm(f => ({ ...f, s3Url: e.target.value }))} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <Btn onClick={add} disabled={adding}>{adding ? "Adding…" : "Add PDF"}</Btn>
+        <Btn onClick={add} disabled={adding}>{adding ? "Adding..." : "Add PDF"}</Btn>
         {msg && <span style={{ fontSize: "13px", color: msg.includes("✅") ? S.success : S.danger }}>{msg}</span>}
       </div>
     </div>
@@ -341,18 +366,14 @@ function PdfsTab() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* Toggle */}
       <div style={{ display: "flex", gap: "8px" }}>
         {["upload", "manual"].map(v => (
           <button key={v} onClick={() => setView(v)} style={{ padding: "7px 16px", borderRadius: "8px", border: `1px solid ${view === v ? S.accent : S.border}`, background: view === v ? S.accentGlow : "transparent", color: view === v ? S.accent : S.muted, fontSize: "13px", fontWeight: 500, cursor: "pointer" }}>
-            {v === "upload" ? "⬆ Upload file" : "🔗 Add URL"}
+            {v === "upload" ? "Upload file" : "Add URL"}
           </button>
         ))}
       </div>
-
       {view === "upload" ? <UploadSection onSuccess={load} /> : <ManualSection onSuccess={load} />}
-
-      {/* PDF List */}
       <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", overflow: "hidden" }}>
         <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <p style={{ margin: 0, fontWeight: 600, color: S.text, fontSize: "15px" }}>All PDFs</p>
@@ -377,7 +398,7 @@ function PdfsTab() {
                   <span style={{ fontSize: "12px", color: S.muted }}>{pdf.subject}</span>
                 </div>
               </div>
-              <a href={pdf.s3Url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", color: S.accent, textDecoration: "none", padding: "4px 10px", border: `1px solid ${S.accent}44`, borderRadius: "6px" }}>View ↗</a>
+              <a href={`https://docs.google.com/viewer?url=${encodeURIComponent(pdf.s3Url)}`} target="_blank" rel="noreferrer" style={{ fontSize: "12px", color: S.accent, textDecoration: "none", padding: "4px 10px", border: `1px solid ${S.accent}44`, borderRadius: "6px" }}>View</a>
               <Btn danger onClick={() => remove(pdf._id)} style={{ padding: "4px 10px", fontSize: "12px" }}>Delete</Btn>
             </div>
           ))
@@ -455,53 +476,16 @@ function SeedTab() {
           <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: S.warning + "20", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px", flexShrink: 0 }}>⚠️</div>
           <div>
             <p style={{ fontWeight: 600, margin: "0 0 4px", color: S.text, fontSize: "15px" }}>Seed database</p>
-            <p style={{ fontSize: "13px", color: S.muted, margin: 0 }}>Wipes existing subjects and trivia collections, then reseeds with default B.Tech data. This action cannot be undone.</p>
+            <p style={{ fontSize: "13px", color: S.muted, margin: 0 }}>Wipes existing subjects and trivia collections, then reseeds with default B.Tech data. Cannot be undone.</p>
           </div>
         </div>
-        <Btn warning onClick={seed} disabled={loading}>{loading ? "Seeding…" : "🌱 Run seed"}</Btn>
+        <Btn warning onClick={seed} disabled={loading}>{loading ? "Seeding..." : "Run seed"}</Btn>
       </div>
       {status && (
         <div style={{ padding: "1rem 1.25rem", background: S.success + "10", border: `1px solid ${S.success}33`, borderRadius: "12px", fontSize: "13px", fontFamily: "monospace", color: S.success }}>
           {status}
         </div>
       )}
-    </div>
-  );
-}
-
-// ── STATS TAB ─────────────────────────────────────────────────────────────────
-function StatsTab() {
-  const [stats, setStats] = useState(null);
-  useEffect(() => { apiFetch("/api/admin/stats").then(setStats).catch(() => {}); }, []);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
-        <StatCard label="Total users" value={stats?.users} color={S.accent} icon="👤" />
-        <StatCard label="Total PDFs" value={stats?.pdfs} color={S.success} icon="📄" />
-        <StatCard label="Platform" value="Live" color={S.purple} icon="🚀" />
-      </div>
-      <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", padding: "1.5rem" }}>
-        <p style={{ fontWeight: 600, margin: "0 0 1rem", color: S.text }}>Stack status</p>
-        {[
-          { label: "Frontend", sub: "Vercel · React + Vite", status: "Live", color: S.success },
-          { label: "Backend", sub: "Railway · Node + Express", status: "Live", color: S.success },
-          { label: "Database", sub: "MongoDB Atlas", status: "Live", color: S.success },
-          { label: "AI (Sara)", sub: "Gemini API", status: "Live", color: S.success },
-          { label: "Storage", sub: "Cloudinary", status: "Live", color: S.success },
-        ].map(item => (
-          <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${S.border}` }}>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: "14px", fontWeight: 500, color: S.text }}>{item.label}</p>
-              <p style={{ margin: 0, fontSize: "12px", color: S.muted }}>{item.sub}</p>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}` }} />
-              <span style={{ fontSize: "12px", color: item.color }}>{item.status}</span>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -526,7 +510,7 @@ export default function AdminPanel() {
     <div style={{ minHeight: "100vh", background: S.bg, backgroundImage: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.05) 0%, transparent 50%)" }}>
       <div style={{ background: S.card + "ee", borderBottom: `1px solid ${S.border}`, padding: "0 1.5rem", display: "flex", alignItems: "center", gap: "1rem", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 0", marginRight: "1rem" }}>
-          <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "30px", height: "30px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "13px", boxShadow: "0 0 12px rgba(37,99,235,0.4)" }}>Ω</div>
+          <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "30px", height: "30px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "13px", boxShadow: "0 0 12px rgba(37,99,235,0.4)" }}>&#937;</div>
           <div>
             <p style={{ margin: 0, fontWeight: 700, fontSize: "13px", color: S.text, lineHeight: 1 }}>StudyNexus</p>
             <p style={{ margin: 0, fontSize: "10px", color: S.muted, letterSpacing: "0.08em" }}>ADMIN</p>
@@ -541,7 +525,6 @@ export default function AdminPanel() {
         </div>
         <button onClick={logout} style={{ fontSize: "12px", color: S.muted, background: "transparent", border: `1px solid ${S.border}`, cursor: "pointer", padding: "6px 12px", borderRadius: "8px" }}>Sign out</button>
       </div>
-
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem 1.5rem" }}>
         {tab === "stats" && <StatsTab />}
         {tab === "pdfs" && <PdfsTab />}
