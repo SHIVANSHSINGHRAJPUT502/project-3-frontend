@@ -7,9 +7,8 @@ import { GlassCard } from './GlassCard';
 
 export const SemesterView = () => {
   const location = useLocation();
-  const semId = location.pathname.split('/').pop(); 
+  const semId = location.pathname.split('/').pop();
   
-  // State layers to manage the network lifecycle
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,12 +18,9 @@ export const SemesterView = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // 🌐 LIVE ENDPOINT: Routed straight to your active Railway gateway container mapping to PDF datasets
         const response = await axios.get(`https://project-3-backend-production-8932.up.railway.app/api/notes/${semId}`, {
-          withCredentials: true 
+          withCredentials: true
         });
-        
         setSubjects(response.data);
       } catch (err) {
         console.error("API Fetch Error:", err);
@@ -48,7 +44,6 @@ export const SemesterView = () => {
         <p className="text-slate-400 text-sm">Deploying live notes and curriculum assets dynamically from the server cluster.</p>
       </div>
 
-      {/* ⏳ Case A: Network Request Latency (Loading State) */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -56,7 +51,6 @@ export const SemesterView = () => {
         </div>
       )}
 
-      {/* ❌ Case B: Backend Is Offline or Connection Times Out (Error State) */}
       {error && !loading && (
         <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-6 max-w-xl mx-auto flex gap-4 items-start">
           <AlertTriangle className="text-rose-400 shrink-0" size={24} />
@@ -67,7 +61,6 @@ export const SemesterView = () => {
         </div>
       )}
 
-      {/* 🚀 Case C: Successful Data Delivery */}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {subjects.length === 0 ? (
@@ -79,13 +72,10 @@ export const SemesterView = () => {
           ) : (
             subjects.map((subject) => (
               <GlassCard key={subject._id || subject.id} className="relative group border-white/5 hover:border-blue-500/20">
-                <div 
-                  style={{
-                    background: 'linear-gradient(to bottom, #2563eb, #06b6d4)'
-                  }}
-                  className="absolute top-0 left-0 w-1.5 h-full" 
+                <div
+                  style={{ background: 'linear-gradient(to bottom, #2563eb, #06b6d4)' }}
+                  className="absolute top-0 left-0 w-1.5 h-full"
                 />
-                
                 <div className="pl-2 space-y-5">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-mono font-bold px-2 py-1 bg-slate-800/80 border border-white/5 rounded text-slate-400 shadow-inner">
@@ -96,7 +86,7 @@ export const SemesterView = () => {
                       Semester {subject.semester}
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors duration-200 line-clamp-2">
                       {subject.title}
@@ -105,9 +95,9 @@ export const SemesterView = () => {
                   </div>
 
                   <div className="flex gap-2.5 pt-1">
-                    <a 
-                      href={subject.s3Url} 
-                      target="_blank" 
+                    
+                      href={`https://docs.google.com/viewer?url=${encodeURIComponent(subject.s3Url)}`}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
                     >
