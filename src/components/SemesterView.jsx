@@ -29,7 +29,6 @@ export const SemesterView = () => {
         setLoading(false);
       }
     };
-
     fetchSyllabusData();
   }, [semId]);
 
@@ -95,8 +94,9 @@ export const SemesterView = () => {
                   </div>
 
                   <div className="flex gap-2.5 pt-1">
-                    
-                      href={`https://docs.google.com/viewer?url=${encodeURIComponent(subject.s3Url)}`}
+                    {/* Fixed: Restored the opening <a> tag and streamlined link resolution */}
+                    <a
+                      href={subject.s3Url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
