@@ -253,7 +253,6 @@ const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "
       fd.append("title", form.title);
       fd.append("semester", form.semester);
       fd.append("subject", form.subject);
-      fd.append("subject", form.subject);
       fd.append("type", form.type);
       setProgress(40);
       const res = await fetch(`${API}/api/admin/pdfs/upload`, {
