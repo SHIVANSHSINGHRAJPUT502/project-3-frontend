@@ -119,7 +119,7 @@ export const DashboardView = () => {
                 }`}>{sem.tag}</span>
               </div>
               <h3 className="text-lg font-bold text-white mb-1">{sem.title}</h3>
-              <p className="text-xs text-slate-400 font-medium mb-4">{sem.subjects}</p>
+              <p className="text-sm text-slate-400 font-medium mb-4">{sem.subjects}</p>
               <div style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.06), transparent)' }} className="w-full h-[2px] my-4" />
               <Link to={`/semester/${sem.id}`} className="w-full py-2.5 bg-white/5 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl text-xs font-semibold tracking-wide flex items-center justify-center gap-1.5 transition-all border border-white/5 hover:border-transparent group/btn">
                 Launch Space <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
