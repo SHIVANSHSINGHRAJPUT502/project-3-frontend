@@ -18,10 +18,10 @@ export const DashboardView = () => {
   }, []);
 
   const semesters = [
-    { id: 1, title: 'Semester 1', subjects: '4 Subjects', icon: '⚡', colorKey: 'blue', tag: 'Completed' },
-    { id: 2, title: 'Semester 2', subjects: '3 Subjects', icon: '🔮', colorKey: 'purple', tag: 'Completed' },
-    { id: 3, title: 'Semester 3', subjects: '4 Subjects', icon: '🧬', colorKey: 'amber', tag: 'Completed' },
-    { id: 4, title: 'Semester 4', subjects: '5 Subjects', icon: '📡', colorKey: 'emerald', tag: 'Completed' },
+    { id: 1, title: 'Semester 1', subjects: '5 Subjects', icon: '⚡', colorKey: 'blue', tag: 'Completed' },
+    { id: 2, title: 'Semester 2', subjects: '4 Subjects', icon: '🔮', colorKey: 'purple', tag: 'Completed' },
+    { id: 3, title: 'Semester 3', subjects: '6 Subjects', icon: '🧬', colorKey: 'amber', tag: 'Completed' },
+    { id: 4, title: 'Semester 4', subjects: '6 Subjects', icon: '📡', colorKey: 'emerald', tag: 'Completed' },
     { id: 5, title: 'Semester 5', subjects: '5 Core Modules', icon: '🧠', colorKey: 'indigo', tag: 'Active' },
     { id: 6, title: 'Semester 6', subjects: '5 Subjects', icon: '⚙️', colorKey: 'rose', tag: 'Upcoming' },
     { id: 7, title: 'Semester 7', subjects: '4 Electives', icon: '🚀', colorKey: 'cyan', tag: 'Upcoming' },
