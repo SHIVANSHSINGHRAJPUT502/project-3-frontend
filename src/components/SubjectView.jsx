@@ -8,9 +8,9 @@ import { GlassCard } from './GlassCard';
 const API = "https://project-3-backend-production-8932.up.railway.app";
 
 const TYPE_CONFIG = {
-  notes: { label: 'Notes', icon: BookOpen, color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },
-  pyq: { label: 'Previous Year Questions', icon: ScrollText, color: '#8b5cf6', bg: '#8b5cf615', desc: 'Past exam papers and solutions' },
-  syllabus: { label: 'Syllabus', icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
+  notes:    { label: 'Notes',                   icon: BookOpen,      color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },
+  pyq:      { label: 'Previous Year Questions', icon: ScrollText,    color: '#8b5cf6', bg: '#8b5cf615', desc: 'Past exam papers and solutions' },
+  syllabus: { label: 'Syllabus',                icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
 };
 
 export const SubjectView = () => {
@@ -50,13 +50,17 @@ export const SubjectView = () => {
           &larr; Back to Semester {semId}
         </Link>
         <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">{decodeURIComponent(subjectName)}</h2>
-          <span className="text-xs font-mono bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-md font-semibold">Semester {semId}</span>
+          <h2 className="text-3xl font-extrabold text-white tracking-tight">
+            {decodeURIComponent(subjectName)}
+          </h2>
+          <span className="text-xs font-mono bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-md font-semibold">
+            Semester {semId}
+          </span>
         </div>
         <p className="text-slate-400 text-sm">Select a category to access resources.</p>
       </div>
 
-      {/* 3 Type Cards */}
+      {/* Notes / PYQ / Syllabus type selector */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
           const CardIcon = cfg.icon;
@@ -79,7 +83,9 @@ export const SubjectView = () => {
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${cfg.color}33` }}>
                   <CardIcon size={18} color={cfg.color} />
                 </div>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: '15px', color: isActive ? cfg.color : '#e2e8f0' }}>{cfg.label}</p>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: '15px', color: isActive ? cfg.color : '#e2e8f0' }}>
+                  {cfg.label}
+                </p>
               </div>
               <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{cfg.desc}</p>
             </button>
@@ -126,16 +132,18 @@ export const SubjectView = () => {
                 />
                 <div className="pl-2 space-y-4">
                   <div className="flex items-center gap-2">
-                    <span style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}44` }}
-                      className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
+                    <span
+                      style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}44` }}
+                      className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider"
+                    >
                       {pdf.type}
                     </span>
                   </div>
                   <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
                     {pdf.title}
                   </h3>
-                  
-                   <a  href={`https://docs.google.com/viewer?url=${encodeURIComponent(pdf.s3Url)}`}
+                  <a
+                    href={`https://docs.google.com/viewer?url=${encodeURIComponent(pdf.s3Url)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"

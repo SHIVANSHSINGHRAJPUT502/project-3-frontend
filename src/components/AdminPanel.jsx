@@ -33,6 +33,13 @@ async function apiFetch(path, options = {}) {
       ...options.headers,
     },
   });
+  // ✅ Session expiry check
+  if (res.status === 401 || res.status === 403) {
+    alert("Session expired. Please log in again.");
+    localStorage.removeItem("admin_token");
+    window.location.reload();
+    return;
+  }
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
 }
@@ -255,12 +262,19 @@ const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "
       fd.append("subject", form.subject);
       fd.append("type", form.type);
       setProgress(40);
-      const res = await fetch(`${API}/api/admin/pdfs/upload`, {
+     const res = await fetch(`${API}/api/admin/pdfs/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}` },
         body: fd,
       });
       setProgress(90);
+      // ✅ Session expiry check
+      if (res.status === 401 || res.status === 403) {
+        alert("Session expired. Please log in again.");
+        localStorage.removeItem("admin_token");
+        window.location.reload();
+        return;
+      }
       if (!res.ok) throw new Error(await res.text());
       setProgress(100);
       setMsg("✅ Uploaded successfully!");
