@@ -260,7 +260,7 @@ const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "
       fd.append("title", form.title);
       fd.append("semester", form.semester);
       fd.append("subject", form.subject);
-      fd.append("type", form.type);
+    fd.append("type", form.type || "notes");
       setProgress(40);
      const res = await fetch(`${API}/api/admin/pdfs/upload`, {
         method: "POST",
@@ -278,7 +278,7 @@ const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "
       if (!res.ok) throw new Error(await res.text());
       setProgress(100);
       setMsg("✅ Uploaded successfully!");
-      setFile(null); setForm({ title: "", semester: "", subject: "" });
+     setFile(null); setForm({ title: "", semester: "", subject: "", type: "notes" });
       if (fileRef.current) fileRef.current.value = "";
       onSuccess();
     } catch (err) { setMsg("❌ Upload failed: " + err.message); }
@@ -344,7 +344,7 @@ const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "
     setAdding(true); setMsg("");
     try {
       await apiFetch("/api/admin/pdfs", { method: "POST", body: JSON.stringify({ ...form, semester: Number(form.semester) }) });
-      setForm({ title: "", semester: "", subject: "", s3Url: "" });
+      setForm({ title: "", semester: "", subject: "", type: "notes", s3Url: "" });
       setMsg("✅ PDF added");
       onSuccess();
     } catch { setMsg("❌ Failed to add"); }
