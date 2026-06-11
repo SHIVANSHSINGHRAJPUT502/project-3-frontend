@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const API = import.meta.env.VITE_API_URL || "https://project-3-backend-production-8932.up.railway.app";
-
+const API = import.meta.env.VITE_API_URL || "https://studynexus.up.railway.app";
 const S = {
   bg: "#090d16",
   surface: "#0d1322",
