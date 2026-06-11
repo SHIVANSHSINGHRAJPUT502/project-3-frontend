@@ -5,7 +5,8 @@ import { AlertTriangle, FileText } from 'lucide-react';
 import axios from 'axios';
 import { GlassCard } from './GlassCard';
 
-const API = "https://project-3-backend-production-8932.up.railway.app";
+// ✅ Swapped to your active live custom production backend domain
+const API = "https://studynexus.up.railway.app";
 
 const COLOR_KEYS = ['blue', 'purple', 'amber', 'emerald', 'rose', 'cyan'];
 

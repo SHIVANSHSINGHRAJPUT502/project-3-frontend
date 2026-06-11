@@ -5,12 +5,13 @@ import { BookOpen, AlertTriangle, FileText, GraduationCap, ScrollText } from 'lu
 import axios from 'axios';
 import { GlassCard } from './GlassCard';
 
-const API = "https://project-3-backend-production-8932.up.railway.app";
+// ✅ Updated to your live custom production backend domain
+const API = "https://studynexus.up.railway.app";
 
 const TYPE_CONFIG = {
-  notes:    { label: 'Notes',                   icon: BookOpen,      color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },
-  pyq:      { label: 'Previous Year Questions', icon: ScrollText,    color: '#8b5cf6', bg: '#8b5cf615', desc: 'Past exam papers and solutions' },
-  syllabus: { label: 'Syllabus',                icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
+  notes:     { label: 'Notes',                icon: BookOpen,      color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },
+  pyq:       { label: 'Previous Year Questions', icon: ScrollText,    color: '#8b5cf6', bg: '#8b5cf615', desc: 'Past exam papers and solutions' },
+  syllabus: { label: 'Syllabus',               icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
 };
 
 export const SubjectView = () => {
@@ -136,7 +137,7 @@ export const SubjectView = () => {
                       style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}44` }}
                       className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider"
                     >
-                      {pdf.type}
+                      {pdf.type || activeType}
                     </span>
                   </div>
                   <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
