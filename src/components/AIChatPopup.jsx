@@ -199,9 +199,13 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
 
     try {
       // 🌐 FIXED: Routed straight to your active production Railway instance gateway
-      const response = await fetch('https://project-3-backend-production-8932.up.railway.app/api/ai/chat', {
+      const response = await fetch('https://studynexus.up.railway.app/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+          // If your AI chat route ever requires authentication, uncomment the line below:
+          // 'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
         body: JSON.stringify({ message: userPayload.text })
       });
 
