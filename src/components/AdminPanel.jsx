@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const API = import.meta.env.VITE_API_URL || "https://studynexus.up.railway.app";
+const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app/";
 const S = {
   bg: "#090d16",
   surface: "#0d1322",
@@ -168,7 +168,7 @@ function StatsTab() {
   const [stats, setStats] = useState(null);
   const [services, setServices] = useState([
     { label: "Frontend", sub: "Vercel · React + Vite", status: "checking" },
-    { label: "Backend", sub: "Railway · Node + Express", status: "checking" },
+    { label: "Backend", sub: "Vercel· Node + Express", status: "checking" },
     { label: "Database", sub: "MongoDB Atlas", status: "checking" },
     { label: "AI (Sara)", sub: "Gemini API", status: "checking" },
     { label: "Storage", sub: "Cloudinary", status: "checking" },

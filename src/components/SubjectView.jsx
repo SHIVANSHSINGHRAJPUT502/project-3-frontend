@@ -6,7 +6,7 @@ import axios from 'axios';
 import { GlassCard } from './GlassCard';
 
 // ✅ Updated to your live custom production backend domain
-const API = "https://studynexus.up.railway.app";
+const API = "https://studynexusbackend.vercel.app/";
 
 const TYPE_CONFIG = {
   notes:     { label: 'Notes',                icon: BookOpen,      color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },

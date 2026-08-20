@@ -6,7 +6,7 @@ import axios from 'axios';
 import { GlassCard } from './GlassCard';
 
 // ✅ Swapped to your active live custom production backend domain
-const API = "https://studynexus.up.railway.app";
+const API = "https://studynexusbackend.vercel.app/";
 
 const COLOR_KEYS = ['blue', 'purple', 'amber', 'emerald', 'rose', 'cyan'];
 

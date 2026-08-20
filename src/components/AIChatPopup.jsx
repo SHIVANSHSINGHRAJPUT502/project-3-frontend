@@ -198,8 +198,8 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-      // 🌐 FIXED: Routed straight to your active production Railway instance gateway
-      const response = await fetch('https://studynexus.up.railway.app/api/ai/chat', {
+      // 🌐 FIXED: Routed straight to your active production vercel instance gateway
+      const response = await fetch('https://studynexusbackend.vercel.app/api/ai/chat', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
