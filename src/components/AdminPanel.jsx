@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app/";
+const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 const S = {
   bg: "#090d16",
   surface: "#0d1322",
