@@ -1,7 +1,7 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell, Clock, CheckCircle2 } from 'lucide-react';
+import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell, Clock, CheckCircle2, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
@@ -17,6 +17,7 @@ export default function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
   const [requests, setRequests] = useState([]);
+  const [activeUsersCount, setActiveUsersCount] = useState(1);
   const location = useLocation();
 
   const user = {
@@ -33,10 +34,29 @@ export default function App() {
     }
   };
 
+  const sendHeartbeatAndFetchUsers = async () => {
+    try {
+      await axios.post('https://studynexusbackend.vercel.app/api/heartbeat');
+      const res = await axios.get('https://studynexusbackend.vercel.app/api/active-users');
+      if (res.data && typeof res.data.count === 'number') {
+        setActiveUsersCount(res.data.count);
+      }
+    } catch (err) {
+      console.error('Heartbeat sync error', err);
+    }
+  };
+
   useEffect(() => {
     fetchRecentRequests();
-    const interval = setInterval(fetchRecentRequests, 15000);
-    return () => clearInterval(interval);
+    sendHeartbeatAndFetchUsers();
+
+    const requestInterval = setInterval(fetchRecentRequests, 15000);
+    const heartbeatInterval = setInterval(sendHeartbeatAndFetchUsers, 20000);
+
+    return () => {
+      clearInterval(requestInterval);
+      clearInterval(heartbeatInterval);
+    };
   }, []);
 
   const handleLinkClick = () => {
@@ -63,9 +83,15 @@ export default function App() {
             Study<span className="text-blue-500">Nexus</span>
           </span>
         </div>
-        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 bg-slate-900 border border-white/10 rounded-xl text-slate-300 active:scale-95 transition-all">
-          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{activeUsersCount} Online</span>
+          </div>
+          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 bg-slate-900 border border-white/10 rounded-xl text-slate-300 active:scale-95 transition-all">
+            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -156,10 +182,15 @@ export default function App() {
           </div>
         </div>
         
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-white/5 bg-slate-950/40 flex items-center gap-2.5 shrink-0">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Node ID: Panipat_N1</span>
+        {/* Sidebar Footer with Live Active Users Count */}
+        <div className="p-4 border-t border-white/5 bg-slate-950/40 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-mono text-slate-400 font-semibold tracking-wider">
+              {activeUsersCount} Active {activeUsersCount === 1 ? 'User' : 'Users'}
+            </span>
+          </div>
+          <span className="text-[9px] font-mono text-slate-600 uppercase">Live</span>
         </div>
       </aside>
 
@@ -174,6 +205,16 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
+            {/* Live Active Badge on Topbar */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <Users size={13} className="text-emerald-400" />
+              <span className="font-semibold">{activeUsersCount} Active</span>
+            </div>
+
             <button className="p-2.5 bg-slate-900/50 border border-white/5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors relative hidden xs:block">
               <Bell size={18} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full" />
