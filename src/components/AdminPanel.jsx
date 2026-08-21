@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
+import AdminRequestsTab from './AdminRequestsTab.jsx';
 const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 const S = {
   bg: "#090d16",
@@ -523,6 +523,7 @@ function SeedTab() {
 const TABS = [
   { id: "stats", label: "Overview", icon: "📊" },
   { id: "pdfs", label: "PDFs", icon: "📄" },
+  { id: "requests", label: "Requests", icon: "📑" },
   { id: "users", label: "Users", icon: "👥" },
   { id: "seed", label: "Seed DB", icon: "🌱" },
 ];
@@ -539,7 +540,7 @@ export default function AdminPanel() {
     <div style={{ minHeight: "100vh", background: S.bg, backgroundImage: "radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.05) 0%, transparent 50%)" }}>
       <div style={{ background: S.card + "ee", borderBottom: `1px solid ${S.border}`, padding: "0 1.5rem", display: "flex", alignItems: "center", gap: "1rem", backdropFilter: "blur(12px)", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "14px 0", marginRight: "1rem" }}>
-          <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "30px", height: "30px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "13px", boxShadow: "0 0 12px rgba(37,99,235,0.4)" }}>&#937;</div>
+          <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "30px", height: "30px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "13px", boxShadow: "0 0 12px rgba(37,99,235,0.4)" }}>Ω</div>
           <div>
             <p style={{ margin: 0, fontWeight: 700, fontSize: "13px", color: S.text, lineHeight: 1 }}>StudyNexus</p>
             <p style={{ margin: 0, fontSize: "10px", color: S.muted, letterSpacing: "0.08em" }}>ADMIN</p>
@@ -557,6 +558,7 @@ export default function AdminPanel() {
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem 1.5rem" }}>
         {tab === "stats" && <StatsTab />}
         {tab === "pdfs" && <PdfsTab />}
+        {tab === "requests" && <AdminRequestsTab token={getToken()} />}
         {tab === "users" && <UsersTab />}
         {tab === "seed" && <SeedTab />}
       </div>

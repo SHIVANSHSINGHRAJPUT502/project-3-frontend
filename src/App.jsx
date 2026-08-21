@@ -1,26 +1,43 @@
 // src/App.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell } from 'lucide-react';
+import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell, Clock, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
+
 import { SubjectView } from './components/SubjectView.jsx';
-
-
 import { DashboardView } from "./components/DashboardView.jsx";
 import { SemesterView } from './components/SemesterView.jsx';
 import { RelaxZoneView } from './components/RelaxZoneView.jsx';
 import { AIChatPopup } from './components/AIChatPopup.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
+import SupportWidget from './components/SupportWidget.jsx';
 
 export default function App() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
+  const [requests, setRequests] = useState([]);
   const location = useLocation();
 
   const user = {
     displayName: "Shivansh Singh",
     photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=shivansh"
   };
+
+  const fetchRecentRequests = async () => {
+    try {
+      const res = await axios.get('https://studynexusbackend.vercel.app/api/admin/requests/recent');
+      setRequests(res.data);
+    } catch (err) {
+      console.error('Failed to load sidebar requests', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentRequests();
+    const interval = setInterval(fetchRecentRequests, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLinkClick = () => {
     if (window.innerWidth < 768) setSidebarOpen(false);
@@ -38,6 +55,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex font-sans antialiased selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden w-full">
       
+      {/* Mobile Topbar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <div style={{ background: 'linear-gradient(to top right, #2563eb, #06b6d4, #60a5fa)' }} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-md">Ω</div>
@@ -60,12 +78,14 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Sidebar Navigation */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 md:z-40 md:relative 
-        flex flex-col shrink-0 bg-slate-950 md:bg-slate-950/60 backdrop-blur-2xl border-r border-white/5 h-full transition-all duration-300
+        fixed inset-y-0 left-0 z-50 md:z-40 md:sticky md:top-0
+        flex flex-col shrink-0 bg-slate-950 md:bg-slate-950/60 backdrop-blur-2xl border-r border-white/5 h-screen transition-all duration-300 overflow-hidden
         ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-64'}
       `}>
-        <div className="h-20 px-6 flex items-center justify-between border-b border-white/5">
+        {/* Sidebar Header */}
+        <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 shrink-0">
           <div className="flex items-center gap-3">
             <div style={{ background: 'linear-gradient(to top right, #2563eb, #06b6d4, #60a5fa)' }} className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20">Ω</div>
             <span style={{ background: 'linear-gradient(to right, #ffffff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} className="font-extrabold text-lg tracking-wider">
@@ -77,23 +97,73 @@ export default function App() {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 mt-4 md:mt-0">
-          <Link to="/" onClick={handleLinkClick} className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all font-medium text-sm border ${location.pathname === '/' || location.pathname.includes('/semester') ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-inner' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            <LayoutDashboard size={20} />
+        {/* Navigation Section */}
+        <div className="p-4 space-y-2 shrink-0">
+          <Link to="/" onClick={handleLinkClick} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm border ${location.pathname === '/' || location.pathname.includes('/semester') ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-inner' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}>
+            <LayoutDashboard size={18} />
             <span>System Dashboard</span>
           </Link>
-          <Link to="/relax" onClick={handleLinkClick} className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all font-medium text-sm border ${location.pathname === '/relax' ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-inner' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            <Coffee size={20} />
+          <Link to="/relax" onClick={handleLinkClick} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm border ${location.pathname === '/relax' ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-inner' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}>
+            <Coffee size={18} />
             <span>Relax Zone</span>
           </Link>
-        </nav>
+        </div>
+
+        {/* ── VERTICAL STACK OF LIVE REQUESTS UNDER RELAX ZONE ── */}
+        <div className="flex-1 overflow-y-auto px-4 py-2 border-t border-white/5 space-y-2 custom-scrollbar">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
+              <span>📑</span> Recent Requests
+            </span>
+            <span className="text-[9px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+              {requests.length}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {requests.length === 0 ? (
+              <p className="text-[11px] text-slate-500 font-mono px-2 py-4 text-center bg-slate-900/30 rounded-xl border border-white/5">
+                No active requests
+              </p>
+            ) : (
+              requests.map((req) => (
+                <div
+                  key={req._id}
+                  className="p-2.5 rounded-xl bg-slate-900/70 border border-white/5 hover:border-cyan-500/30 transition-all text-left group"
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[11px] font-semibold text-slate-200 truncate max-w-[100px]">
+                      {req.name || 'Student'}
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                      S{req.semester}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
+                    {req.message}
+                  </p>
+                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/[0.04] text-[8px] text-slate-500 font-mono">
+                    <span className="flex items-center gap-0.5">
+                      <Clock size={8} /> {new Date(req.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-emerald-400 flex items-center gap-0.5">
+                      <CheckCircle2 size={8} /> In Queue
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
         
-        <div className="p-4 border-t border-white/5 bg-slate-950/40 flex items-center gap-2.5">
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-white/5 bg-slate-950/40 flex items-center gap-2.5 shrink-0">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Node ID: Panipat_N1</span>
         </div>
       </aside>
 
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen relative pt-16 md:pt-0">
         
         <header className="h-20 border-b border-white/5 bg-slate-950/20 backdrop-blur-md flex items-center px-4 sm:px-6 md:px-10 justify-between relative z-30">
@@ -127,6 +197,10 @@ export default function App() {
           </Routes>
         </main>
 
+        {/* ── LEFT FLOATING WIDGET: Request Notes ── */}
+        <SupportWidget onSubmitted={fetchRecentRequests} />
+
+        {/* ── RIGHT FLOATING WIDGET: ASK SARA ── */}
         <motion.button 
           initial={{ opacity: 0, y: 50, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -153,6 +227,7 @@ export default function App() {
             <AIChatPopup isOpen={isChatOpen} onClose={() => setChatOpen(false)} />
           </div>
         </div>
+
       </div>
     </div>
   );

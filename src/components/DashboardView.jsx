@@ -30,6 +30,7 @@ export const DashboardView = () => {
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10">
+      {/* Hero Banner */}
       <div className="relative rounded-3xl p-8 md:p-10 overflow-hidden border border-white/5 bg-slate-900 shadow-2xl">
         <div style={{ background: 'radial-gradient(circle, rgba(37, 99, 235, 0.14) 0%, transparent 70%)' }} className="absolute -top-20 -right-20 w-96 h-96 blur-2xl pointer-events-none" />
         <div className="max-w-2xl relative z-10 space-y-4">
@@ -45,6 +46,7 @@ export const DashboardView = () => {
         </div>
       </div>
 
+      {/* System Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -86,6 +88,7 @@ export const DashboardView = () => {
         </div>
       </div>
 
+      {/* Academic Matrices - Clean 4-Column Grid */}
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold text-white tracking-wide">Academic Matrices</h2>
@@ -131,3 +134,5 @@ export const DashboardView = () => {
     </div>
   );
 };
+
+export default DashboardView;
