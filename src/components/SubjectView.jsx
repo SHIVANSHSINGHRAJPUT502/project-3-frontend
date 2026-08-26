@@ -119,7 +119,7 @@ export const SubjectView = () => {
           <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl bg-slate-950/40">
             <FileText className="text-slate-600 mx-auto mb-3" size={32} />
             <p className="text-sm text-slate-400 font-medium">No {config.label} uploaded yet</p>
-            <p className="text-xs text-slate-600 mt-1">Admin can upload from the admin panel</p>
+            <p className="text-xs text-slate-600 mt-1">Contact Admin</p>
           </div>
         )}
 
