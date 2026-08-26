@@ -23,8 +23,8 @@ export const DashboardView = () => {
     { id: 3, title: 'Semester 3', subjects: '6 Subjects', icon: '🧬', colorKey: 'amber', tag: 'Completed' },
     { id: 4, title: 'Semester 4', subjects: '6 Subjects', icon: '📡', colorKey: 'emerald', tag: 'Completed' },
     { id: 5, title: 'Semester 5', subjects: '5 Core Modules', icon: '🧠', colorKey: 'indigo', tag: 'Completed' },
-    { id: 6, title: 'Semester 6', subjects: '5 Subjects', icon: '⚙️', colorKey: 'rose', tag: 'Active' },
-    { id: 7, title: 'Semester 7', subjects: '4 Electives', icon: '🚀', colorKey: 'cyan', tag: 'Upcoming' },
+    { id: 6, title: 'Semester 6', subjects: '5 Subjects', icon: '⚙️', colorKey: 'rose', tag: 'Completed' },
+    { id: 7, title: 'Semester 7', subjects: '5 subjects', icon: '🚀', colorKey: 'cyan', tag: 'Active' },
     { id: 8, title: 'Semester 8', subjects: 'Project & Labs', icon: '🎓', colorKey: 'violet', tag: 'Upcoming' },
   ];
 
