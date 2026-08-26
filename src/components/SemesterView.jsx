@@ -88,7 +88,7 @@ export const SemesterView = () => {
             <div className="col-span-full text-center py-16 border border-dashed border-white/5 rounded-2xl bg-slate-950/40 max-w-md mx-auto p-6">
               <FileText className="text-slate-600 mx-auto mb-3" size={28} />
               <p className="text-sm text-slate-200 font-semibold">No PDFs uploaded for Semester {semId} yet</p>
-              <p className="text-xs text-slate-500 mt-1">Admin can upload PDFs from the admin panel.</p>
+              <p className="text-xs text-slate-500 mt-1"> Contact the Admin for PDF.</p>
             </div>
           ) : (
             subjects.map((subject, i) => {
