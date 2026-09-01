@@ -1,7 +1,8 @@
 // src/components/AIChatPopup.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Send, Loader2, Mic, Volume2 } from 'lucide-react';
+import { Sparkles, X, Send, Loader2, Mic, Volume2, FileText, ExternalLink, ArrowRight } from 'lucide-react';
 
 const LOADING_PHRASES = [
   "Bypassing NASA firewalls...",
@@ -13,6 +14,7 @@ const LOADING_PHRASES = [
 ];
 
 export const AIChatPopup = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([
     {
@@ -198,20 +200,25 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     setIsTyping(true);
 
     try {
-      // 🌐 FIXED: Routed straight to your active production vercel instance gateway
       const response = await fetch('https://studynexusbackend.vercel.app/api/ai/chat', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
-          // If your AI chat route ever requires authentication, uncomment the line below:
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}` 
         },
         body: JSON.stringify({ message: userPayload.text })
       });
 
       if (response.ok) {
         const data = await response.json();
-        setMessages((prev) => [...prev, { sender: 'ai', text: data.reply }]);
+        setMessages((prev) => [
+          ...prev, 
+          { 
+            sender: 'ai', 
+            text: data.reply,
+            resources: data.resources || [],
+            semester: data.semester || null
+          }
+        ]);
         speakText(data.reply);
       } else if (response.status === 429) {
         setMessages((prev) => [...prev, { sender: 'ai', text: "⚠️ Server limit reached. Let's take a 30-second breather!" }]);
@@ -233,6 +240,11 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') handleDispatchMessage();
+  };
+
+  const handleNavigateSemester = (sem) => {
+    navigate(`/semester/${sem}`);
+    onClose();
   };
 
   return (
@@ -264,7 +276,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
           {/* Messages Screen */}
           <div className="flex-1 p-4 space-y-3 overflow-y-auto text-sm scrollbar-none">
             {messages.map((msg, index) => (
-              <div key={index} className={`flex w-full ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={index} className={`flex flex-col w-full ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
                 <div className={`p-3 rounded-xl max-w-[85%] leading-relaxed group relative ${msg.sender === 'user' ? 'bg-blue-600 text-white font-medium rounded-tr-none' : 'bg-slate-800/60 border border-white/5 text-slate-300 rounded-tl-none whitespace-pre-wrap'}`}>
                   {msg.text}
                   {msg.sender === 'ai' && (
@@ -273,6 +285,49 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                     </button>
                   )}
                 </div>
+
+                {/* ── Direct PDF Resource Link Cards ── */}
+                {msg.resources && msg.resources.length > 0 && (
+                  <div className="mt-2.5 w-full max-w-[85%] space-y-1.5">
+                    {msg.resources.map((res, rIdx) => (
+                      <div 
+                        key={rIdx}
+                        className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-2 shadow-md"
+                      >
+                        <div className="truncate flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <FileText size={13} className="text-cyan-400 shrink-0" />
+                            <p className="font-semibold text-xs text-white truncate">{res.title}</p>
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            Sem {res.semester} • {res.subject} {res.type ? `• ${res.type}` : ''}
+                          </span>
+                        </div>
+
+                        <a
+                          href={res.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 font-semibold text-[10px] border border-cyan-500/30 flex items-center gap-1 shrink-0 transition-colors"
+                        >
+                          <span>Open</span>
+                          <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── Shortcut button to Semester View ── */}
+                {msg.semester && (
+                  <button
+                    onClick={() => handleNavigateSemester(msg.semester)}
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium transition-all"
+                  >
+                    <span>View all Semester {msg.semester} Subjects</span>
+                    <ArrowRight size={12} />
+                  </button>
+                )}
               </div>
             ))}
 
