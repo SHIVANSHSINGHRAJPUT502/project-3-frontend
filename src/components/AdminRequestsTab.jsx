@@ -1,5 +1,5 @@
 // src/components/AdminRequestsTab.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { 
   Trash2, 
@@ -15,7 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-const API = 'https://studynexusbackend.vercel.app';
+const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
 
 export default function AdminRequestsTab({ token }) {
   const [activeTab, setActiveTab] = useState('moderation'); // 'moderation' or 'requests'
@@ -30,47 +30,64 @@ export default function AdminRequestsTab({ token }) {
   const [actionLoading, setActionLoading] = useState(null);
   const [feedback, setFeedback] = useState(null);
 
+  // Helper to retrieve auth token
+  const getAuthToken = () => token || localStorage.getItem('admin_token') || localStorage.getItem('token');
+
   // Fetch Student Missing-PDF Tickets
-  const fetchRequests = async () => {
-    setLoadingRequests(true);
+  const fetchRequests = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoadingRequests(true);
     try {
+      const authToken = getAuthToken();
       const res = await axios.get(`${API}/api/admin/requests`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
       });
-      setRequests(res.data || []);
+      const data = Array.isArray(res.data) ? res.data : (res.data?.requests || []);
+      setRequests(data);
     } catch (err) {
       console.error('Failed to fetch requests', err);
     } finally {
-      setLoadingRequests(false);
+      if (!isSilent) setLoadingRequests(false);
     }
-  };
+  }, [token]);
 
   // Fetch Pending User-Uploaded PDFs
-  const fetchPendingNotes = async () => {
-    setLoadingNotes(true);
+  const fetchPendingNotes = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoadingNotes(true);
     try {
+      const authToken = getAuthToken();
       const res = await axios.get(`${API}/api/admin/notes/pending`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
       });
-      setPendingNotes(res.data.notes || res.data || []);
+      const data = res.data?.notes || (Array.isArray(res.data) ? res.data : []);
+      setPendingNotes(data);
     } catch (err) {
       console.error('Failed to fetch pending notes', err);
     } finally {
-      setLoadingNotes(false);
+      if (!isSilent) setLoadingNotes(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    fetchRequests();
-    fetchPendingNotes();
-  }, [token]);
+    // 1. Initial fetch
+    fetchRequests(false);
+    fetchPendingNotes(false);
+
+    // 2. Auto-poll every 10 seconds in the background
+    const interval = setInterval(() => {
+      fetchRequests(true);
+      fetchPendingNotes(true);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchRequests, fetchPendingNotes]);
 
   // Handle Request Resolution
   const deleteRequest = async (id) => {
     if (!window.confirm('Mark this student request as resolved?')) return;
     try {
+      const authToken = getAuthToken();
       await axios.delete(`${API}/api/admin/requests/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
       });
       setRequests((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {
@@ -82,10 +99,11 @@ export default function AdminRequestsTab({ token }) {
   const handleApproveNote = async (id) => {
     try {
       setActionLoading(id);
+      const authToken = getAuthToken();
       await axios.patch(
         `${API}/api/admin/notes/${id}/approve`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: authToken ? { Authorization: `Bearer ${authToken}` } : {} }
       );
       setPendingNotes((prev) => prev.filter((item) => item._id !== id));
       setFeedback({ type: 'success', message: 'Resource approved & live on StudyNexus!' });
@@ -102,8 +120,9 @@ export default function AdminRequestsTab({ token }) {
     if (!window.confirm('Are you sure you want to reject and delete this PDF submission?')) return;
     try {
       setActionLoading(id);
+      const authToken = getAuthToken();
       await axios.delete(`${API}/api/admin/notes/${id}/reject`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
       });
       setPendingNotes((prev) => prev.filter((item) => item._id !== id));
       setFeedback({ type: 'success', message: 'Submission rejected and cleared from queue.' });
@@ -116,8 +135,8 @@ export default function AdminRequestsTab({ token }) {
   };
 
   const handleRefreshCurrent = () => {
-    if (activeTab === 'moderation') fetchPendingNotes();
-    else fetchRequests();
+    if (activeTab === 'moderation') fetchPendingNotes(false);
+    else fetchRequests(false);
   };
 
   return (
@@ -175,7 +194,7 @@ export default function AdminRequestsTab({ token }) {
       {/* ── TAB 1: PDF MODERATION QUEUE ── */}
       {activeTab === 'moderation' && (
         <div className="mt-4 space-y-3">
-          {loadingNotes ? (
+          {loadingNotes && pendingNotes.length === 0 ? (
             <div className="py-12 flex items-center justify-center gap-2 text-cyan-400 font-mono text-xs">
               <Loader2 size={16} className="animate-spin" />
               <span>Scanning moderation records...</span>
@@ -207,7 +226,7 @@ export default function AdminRequestsTab({ token }) {
                     </div>
 
                     <div className="flex items-center gap-4 text-[11px] text-slate-400 font-mono">
-                      <span>Submitted by: <strong className="text-slate-200">{note.uploadedBy || 'Anonymous Student'}</strong></span>
+                      <span>Submitted by: <strong className="text-slate-200">{note.uploaderName || note.uploadedBy || 'Student Contributor'}</strong></span>
                       {note.createdAt && (
                         <span className="flex items-center gap-1 text-slate-500">
                           <Clock size={11} /> {new Date(note.createdAt).toLocaleDateString()}
@@ -216,17 +235,19 @@ export default function AdminRequestsTab({ token }) {
                     </div>
                   </div>
 
-                  {/* Actions: Live Preview, Approve, Reject */}
+                  {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <a
-                      href={note.s3Url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                    >
-                      <span>Preview PDF</span>
-                      <ExternalLink size={12} />
-                    </a>
+                    {note.s3Url && (
+                      <a
+                        href={note.s3Url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>Preview PDF</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    )}
 
                     <button
                       disabled={actionLoading === note._id}
@@ -256,7 +277,7 @@ export default function AdminRequestsTab({ token }) {
       {/* ── TAB 2: STUDENT MISSING-NOTES REQUESTS ── */}
       {activeTab === 'requests' && (
         <div className="mt-4 space-y-3">
-          {loadingRequests ? (
+          {loadingRequests && requests.length === 0 ? (
             <div className="py-12 flex items-center justify-center gap-2 text-amber-400 font-mono text-xs">
               <Loader2 size={16} className="animate-spin" />
               <span>Fetching student requests...</span>
