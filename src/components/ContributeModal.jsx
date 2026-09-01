@@ -55,7 +55,6 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
         return;
       }
       setSelectedFile(file);
-      // Auto-fill title with filename if empty
       if (!formData.title) {
         setFormData(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, '') }));
       }
@@ -85,8 +84,12 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
       data.append('title', formData.title.trim());
       data.append('subject', formData.subject.trim());
       data.append('semester', Number(semId));
-      data.append('type', formData.type);
-      data.append('uploaderName', formData.uploaderName?.trim() || 'Student Contributor');
+      data.append('type', formData.type.toLowerCase().trim());
+      
+      // Explicitly append name under both standard keys to prevent any mismatch
+      const contributorName = formData.uploaderName.trim() || 'Student Contributor';
+      data.append('uploaderName', contributorName);
+      data.append('name', contributorName);
 
       if (uploadMode === 'file' && selectedFile) {
         data.append('pdf', selectedFile);
@@ -145,7 +148,6 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
               </div>
             </div>
 
-            {/* Upload Method Selector Toggle */}
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-900/80 rounded-xl border border-white/5 mb-4 text-xs font-semibold">
               <button
                 type="button"
@@ -174,7 +176,6 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
-              {/* Subject Dropdown */}
               <div>
                 <label className="block text-slate-400 mb-1 font-mono text-[10px] uppercase">Select Subject</label>
                 {subjects.length > 0 ? (
@@ -205,7 +206,6 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
                 )}
               </div>
 
-              {/* Title / Chapter Name */}
               <div>
                 <label className="block text-slate-400 mb-1 font-mono text-[10px] uppercase">Title / Chapter Name</label>
                 <input
@@ -218,7 +218,6 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
                 />
               </div>
 
-              {/* Resource Type */}
               <div>
                 <label className="block text-slate-400 mb-1 font-mono text-[10px] uppercase">Resource Type</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -239,7 +238,6 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
                 </div>
               </div>
 
-              {/* Dynamic File Upload / URL Input */}
               {uploadMode === 'file' ? (
                 <div>
                   <label className="block text-slate-400 mb-1 font-mono text-[10px] uppercase">Select PDF from Device</label>
@@ -270,12 +268,11 @@ export const ContributeModal = ({ isOpen, onClose, semId, subjects = [] }) => {
                 </div>
               )}
 
-              {/* Contributor Credit (Optional) */}
               <div>
-                <label className="block text-slate-400 mb-1 font-mono text-[10px] uppercase">Your Name </label>
+                <label className="block text-slate-400 mb-1 font-mono text-[10px] uppercase">Your Name (Contributor Credit)</label>
                 <input
                   type="text"
-                  placeholder="e.g. Student Contributor"
+                  placeholder="e.g. Shivansh"
                   value={formData.uploaderName}
                   onChange={(e) => setFormData({ ...formData, uploaderName: e.target.value })}
                   className="w-full bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-slate-200 focus:outline-none focus:border-cyan-500/40"
