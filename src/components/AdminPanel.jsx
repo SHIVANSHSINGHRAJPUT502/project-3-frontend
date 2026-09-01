@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+// src/components/AdminPanel.jsx
+import React, { useState, useEffect } from "react";
 import AdminRequestsTab from './AdminRequestsTab.jsx';
+import AdminPdfsTab from './AdminPdfsTab.jsx';
+
 const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 const S = {
   bg: "#090d16",
@@ -32,7 +35,6 @@ async function apiFetch(path, options = {}) {
       ...options.headers,
     },
   });
-  // ✅ Session expiry check
   if (res.status === 401 || res.status === 403) {
     alert("Session expired. Please log in again.");
     localStorage.removeItem("admin_token");
@@ -57,17 +59,14 @@ function Input({ style, ...props }) {
         color: S.text,
         fontSize: "14px",
         outline: "none",
-        transition: "border-color 0.2s",
         ...style,
       }}
-      onFocus={e => e.target.style.borderColor = S.accent}
-      onBlur={e => e.target.style.borderColor = S.border}
     />
   );
 }
 
-function Btn({ children, danger, warning, success, full, solid, style, ...props }) {
-  const color = danger ? S.danger : warning ? S.warning : success ? S.success : S.accent;
+function Btn({ children, danger, warning, ...props }) {
+  const color = danger ? S.danger : warning ? S.warning : S.accent;
   return (
     <button
       {...props}
@@ -75,15 +74,13 @@ function Btn({ children, danger, warning, success, full, solid, style, ...props 
         padding: "9px 18px",
         borderRadius: "8px",
         border: `1px solid ${color}`,
-        background: solid ? color : "transparent",
-        color: solid ? "#fff" : color,
+        background: "transparent",
+        color,
         fontSize: "13px",
         fontWeight: 500,
         cursor: "pointer",
-        width: full ? "100%" : undefined,
         opacity: props.disabled ? 0.5 : 1,
-        transition: "all 0.15s",
-        ...style,
+        ...props.style,
       }}
     >
       {children}
@@ -131,7 +128,7 @@ function Login({ onLogin }) {
       <div style={{ background: S.card, border: `1px solid ${S.border2}`, borderRadius: "20px", padding: "2.5rem", width: "100%", maxWidth: "400px", boxShadow: "0 0 60px rgba(59,130,246,0.08)" }}>
         <div style={{ marginBottom: "2rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1.5rem" }}>
-            <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "18px", boxShadow: "0 0 20px rgba(37,99,235,0.4)" }}>&#937;</div>
+            <div style={{ background: "linear-gradient(135deg, #2563eb, #06b6d4)", width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", fontSize: "18px", boxShadow: "0 0 20px rgba(37,99,235,0.4)" }}>Ω</div>
             <div>
               <p style={{ margin: 0, fontWeight: 700, fontSize: "16px", color: S.text }}>StudyNexus</p>
               <p style={{ margin: 0, fontSize: "11px", color: S.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>Admin Portal</p>
@@ -163,14 +160,14 @@ function Login({ onLogin }) {
   );
 }
 
-// ── STATS TAB ─────────────────────────────────────────────────────────────────
+// ── OVERVIEW / STATS TAB ──────────────────────────────────────────────────────
 function StatsTab() {
   const [stats, setStats] = useState(null);
   const [services, setServices] = useState([
     { label: "Frontend", sub: "Vercel · React + Vite", status: "checking" },
-    { label: "Backend", sub: "Vercel· Node + Express", status: "checking" },
+    { label: "Backend", sub: "Vercel · Node + Express", status: "checking" },
     { label: "Database", sub: "MongoDB Atlas", status: "checking" },
-    { label: "AI (Sara)", sub: "Gemini API", status: "checking" },
+    { label: "AI (Sarah)", sub: "Gemini API", status: "checking" },
     { label: "Storage", sub: "Cloudinary", status: "checking" },
   ]);
 
@@ -228,215 +225,6 @@ function StatsTab() {
   );
 }
 
-// ── PDF UPLOAD SECTION ────────────────────────────────────────────────────────
-function UploadSection({ onSuccess }) {
-  const [file, setFile] = useState(null);
-const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "notes" });
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [msg, setMsg] = useState("");
-  const fileRef = useRef();
-
-  const handleFile = (e) => {
-    const f = e.target.files[0];
-    if (f && f.type === "application/pdf") { setFile(f); setMsg(""); }
-    else { setMsg("Only PDF files allowed"); if (fileRef.current) fileRef.current.value = ""; }
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if (f && f.type === "application/pdf") { setFile(f); setMsg(""); }
-    else { setMsg("Only PDF files allowed"); }
-  };
-
-  const upload = async () => {
-    if (!file || !form.title || !form.semester || !form.subject) { setMsg("Fill all fields and select a PDF"); return; }
-    setUploading(true); setMsg(""); setProgress(10);
-    try {
-      const fd = new FormData();
-      fd.append("pdf", file);
-      fd.append("title", form.title);
-      fd.append("semester", form.semester);
-      fd.append("subject", form.subject);
-    fd.append("type", form.type || "notes");
-      setProgress(40);
-     const res = await fetch(`${API}/api/admin/pdfs/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: fd,
-      });
-      setProgress(90);
-      // ✅ Session expiry check
-      if (res.status === 401 || res.status === 403) {
-        alert("Session expired. Please log in again.");
-        localStorage.removeItem("admin_token");
-        window.location.reload();
-        return;
-      }
-      if (!res.ok) throw new Error(await res.text());
-      setProgress(100);
-      setMsg("✅ Uploaded successfully!");
-     setFile(null); setForm({ title: "", semester: "", subject: "", type: "notes" });
-      if (fileRef.current) fileRef.current.value = "";
-      onSuccess();
-    } catch (err) { setMsg("❌ Upload failed: " + err.message); }
-    finally { setUploading(false); setTimeout(() => setProgress(0), 1000); }
-  };
-
-  return (
-    <div style={{ background: S.card, border: `1px solid ${S.border2}`, borderRadius: "14px", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: S.muted2, textTransform: "uppercase", letterSpacing: "0.08em" }}>Upload PDF to Cloudinary</p>
-        <Badge color={S.purple}>Cloudinary</Badge>
-      </div>
-      <div onDrop={handleDrop} onDragOver={e => e.preventDefault()} onClick={() => fileRef.current.click()}
-        style={{ border: `2px dashed ${file ? S.success : S.border2}`, borderRadius: "12px", padding: "2rem", textAlign: "center", cursor: "pointer", background: file ? S.success + "08" : S.surface, transition: "all 0.2s" }}>
-        <input ref={fileRef} type="file" accept=".pdf" onChange={handleFile} style={{ display: "none" }} />
-        {file ? (
-          <div>
-            <p style={{ fontSize: "28px", margin: "0 0 8px" }}>📄</p>
-            <p style={{ margin: "0 0 4px", fontWeight: 600, color: S.success, fontSize: "14px" }}>{file.name}</p>
-            <p style={{ margin: 0, fontSize: "12px", color: S.muted }}>({(file.size / 1024 / 1024).toFixed(2)} MB) · Click to change</p>
-          </div>
-        ) : (
-          <div>
-            <p style={{ fontSize: "32px", margin: "0 0 8px" }}>&#9729;&#65039;</p>
-            <p style={{ margin: "0 0 4px", color: S.muted2, fontSize: "14px", fontWeight: 500 }}>Drop PDF here or click to browse</p>
-            <p style={{ margin: 0, fontSize: "12px", color: S.muted }}>Max 20MB · PDF only</p>
-          </div>
-        )}
-      </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "10px" }}>
-  <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-  <Input placeholder="Semester (1-8)" type="number" min="1" max="8" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
-  <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-    style={{ background: S.input, border: `1px solid ${S.border}`, borderRadius: "8px", padding: "9px 12px", color: S.text, fontSize: "14px", outline: "none" }}>
-    <option value="notes">Notes</option>
-    <option value="pyq">PYQ</option>
-    <option value="syllabus">Syllabus</option>
-  </select>
-</div>
-      {progress > 0 && (
-        <div style={{ height: "4px", background: S.border, borderRadius: "4px", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg, #2563eb, #06b6d4)", borderRadius: "4px", transition: "width 0.3s" }} />
-        </div>
-      )}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <button onClick={upload} disabled={uploading} style={{ padding: "10px 20px", borderRadius: "8px", background: uploading ? S.accent + "60" : "linear-gradient(135deg, #2563eb, #06b6d4)", border: "none", color: "#fff", fontWeight: 600, fontSize: "13px", cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
-          {uploading ? "Uploading..." : "Upload to Cloudinary"}
-        </button>
-        {msg && <span style={{ fontSize: "13px", color: msg.includes("✅") ? S.success : S.danger }}>{msg}</span>}
-      </div>
-    </div>
-  );
-}
-
-// ── MANUAL URL SECTION ────────────────────────────────────────────────────────
-function ManualSection({ onSuccess }) {
-const [form, setForm] = useState({ title: "", semester: "", subject: "", type: "notes", s3Url: "" });
-  const [adding, setAdding] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  const add = async () => {
-    setAdding(true); setMsg("");
-    try {
-      await apiFetch("/api/admin/pdfs", { method: "POST", body: JSON.stringify({ ...form, semester: Number(form.semester) }) });
-      setForm({ title: "", semester: "", subject: "", type: "notes", s3Url: "" });
-      setMsg("✅ PDF added");
-      onSuccess();
-    } catch { setMsg("❌ Failed to add"); }
-    finally { setAdding(false); }
-  };
-
-  return (
-    <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ fontSize: "13px", fontWeight: 600, margin: 0, color: S.muted2, textTransform: "uppercase", letterSpacing: "0.08em" }}>Add via URL</p>
-        <Badge color={S.muted}>Manual</Badge>
-      </div>
-     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-  <Input placeholder="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-  <Input placeholder="Semester (1-8)" type="number" value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} />
-  <Input placeholder="Subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} />
-  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-    style={{ background: S.input, border: `1px solid ${S.border}`, borderRadius: "8px", padding: "9px 12px", color: S.text, fontSize: "14px", outline: "none" }}>
-    <option value="notes">Notes</option>
-    <option value="pyq">PYQ</option>
-    <option value="syllabus">Syllabus</option>
-  </select>
-  <Input placeholder="PDF URL" value={form.s3Url} onChange={e => setForm(f => ({ ...f, s3Url: e.target.value }))} style={{ gridColumn: "1 / -1" }} />
-</div>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <Btn onClick={add} disabled={adding}>{adding ? "Adding..." : "Add PDF"}</Btn>
-        {msg && <span style={{ fontSize: "13px", color: msg.includes("✅") ? S.success : S.danger }}>{msg}</span>}
-      </div>
-    </div>
-  );
-}
-
-// ── PDFS TAB ──────────────────────────────────────────────────────────────────
-function PdfsTab() {
-  const [pdfs, setPdfs] = useState([]);
-  const [view, setView] = useState("upload");
-
-  const load = () => apiFetch("/api/admin/pdfs").then(setPdfs).catch(() => {});
-  useEffect(() => { load(); }, []);
-
-  const remove = async (id) => {
-    if (!confirm("Delete this PDF?")) return;
-    await apiFetch(`/api/admin/pdfs/${id}`, { method: "DELETE" });
-    load();
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      <div style={{ display: "flex", gap: "8px" }}>
-        {["upload", "manual"].map(v => (
-          <button key={v} onClick={() => setView(v)} style={{ padding: "7px 16px", borderRadius: "8px", border: `1px solid ${view === v ? S.accent : S.border}`, background: view === v ? S.accentGlow : "transparent", color: view === v ? S.accent : S.muted, fontSize: "13px", fontWeight: 500, cursor: "pointer" }}>
-            {v === "upload" ? "Upload file" : "Add URL"}
-          </button>
-        ))}
-      </div>
-      {view === "upload" ? <UploadSection onSuccess={load} /> : <ManualSection onSuccess={load} />}
-      <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: "14px", overflow: "hidden" }}>
-        <div style={{ padding: "1rem 1.5rem", borderBottom: `1px solid ${S.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <p style={{ margin: 0, fontWeight: 600, color: S.text, fontSize: "15px" }}>All PDFs</p>
-          <Badge color={S.accent}>{pdfs.length} files</Badge>
-        </div>
-        {pdfs.length === 0 ? (
-          <div style={{ padding: "3rem", textAlign: "center" }}>
-            <p style={{ fontSize: "32px", margin: "0 0 8px" }}>📂</p>
-            <p style={{ color: S.muted, margin: 0, fontSize: "14px" }}>No PDFs yet — upload one above</p>
-          </div>
-        ) : (
-          pdfs.map((pdf, i) => (
-            <div key={pdf._id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 1.5rem", borderBottom: i < pdfs.length - 1 ? `1px solid ${S.border}` : "none", transition: "background 0.15s" }}
-              onMouseEnter={e => e.currentTarget.style.background = S.surface}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: S.accent + "15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>📄</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 3px", fontWeight: 500, fontSize: "14px", color: S.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdf.title}</p>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                 <Badge color={S.purple}>Sem {pdf.semester}</Badge>
-                 <span style={{ fontSize: "12px", color: S.muted }}>{pdf.subject}</span>
-                <Badge color={pdf.type === 'notes' ? S.accent : pdf.type === 'pyq' ? S.purple : S.success}>
-               {pdf.type || 'notes'}
-              </Badge>
-                </div>
-              </div>
-              <a href={`https://docs.google.com/viewer?url=${encodeURIComponent(pdf.s3Url)}`} target="_blank" rel="noreferrer" style={{ fontSize: "12px", color: S.accent, textDecoration: "none", padding: "4px 10px", border: `1px solid ${S.accent}44`, borderRadius: "6px" }}>View</a>
-              <Btn danger onClick={() => remove(pdf._id)} style={{ padding: "4px 10px", fontSize: "12px" }}>Delete</Btn>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── USERS TAB ─────────────────────────────────────────────────────────────────
 function UsersTab() {
   const [users, setUsers] = useState([]);
@@ -462,10 +250,7 @@ function UsersTab() {
         </div>
       ) : (
         users.map((u, i) => (
-          <div key={u._id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 1.5rem", borderBottom: i < users.length - 1 ? `1px solid ${S.border}` : "none" }}
-            onMouseEnter={e => e.currentTarget.style.background = S.surface}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
+          <div key={u._id || i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 1.5rem", borderBottom: i < users.length - 1 ? `1px solid ${S.border}` : "none" }}>
             <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "linear-gradient(135deg, #2563eb, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", fontWeight: 700, color: "#fff", flexShrink: 0 }}>
               {u.name?.[0]?.toUpperCase() || "U"}
             </div>
@@ -482,7 +267,7 @@ function UsersTab() {
   );
 }
 
-// ── SEED TAB ──────────────────────────────────────────────────────────────────
+// ── SEED DB TAB ───────────────────────────────────────────────────────────────
 function SeedTab() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
@@ -519,11 +304,11 @@ function SeedTab() {
   );
 }
 
-// ── MAIN ──────────────────────────────────────────────────────────────────────
+// ── MAIN TAB NAVIGATION & EXPORT ──────────────────────────────────────────────
 const TABS = [
   { id: "stats", label: "Overview", icon: "📊" },
-  { id: "pdfs", label: "PDFs", icon: "📄" },
-  { id: "requests", label: "Requests", icon: "📑" },
+  { id: "pdfs", label: "PDF Library", icon: "📄" },
+  { id: "requests", label: "Requests & Moderation", icon: "📑" },
   { id: "users", label: "Users", icon: "👥" },
   { id: "seed", label: "Seed DB", icon: "🌱" },
 ];
@@ -546,18 +331,19 @@ export default function AdminPanel() {
             <p style={{ margin: 0, fontSize: "10px", color: S.muted, letterSpacing: "0.08em" }}>ADMIN</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: "2px", flex: 1 }}>
+        <div style={{ display: "flex", gap: "2px", flex: 1, overflowX: "auto" }}>
           {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "8px 14px", fontSize: "13px", border: "none", background: tab === t.id ? S.accentGlow : "transparent", color: tab === t.id ? S.accent : S.muted, borderRadius: "8px", cursor: "pointer", fontWeight: tab === t.id ? 600 : 400, display: "flex", alignItems: "center", gap: "6px", transition: "all 0.15s" }}>
+            <button key={t.id} onClick={() => setTab(t.id)} style={{ padding: "8px 14px", fontSize: "13px", border: "none", background: tab === t.id ? S.accentGlow : "transparent", color: tab === t.id ? S.accent : S.muted, borderRadius: "8px", cursor: "pointer", fontWeight: tab === t.id ? 600 : 400, display: "flex", alignItems: "center", gap: "6px", transition: "all 0.15s", whiteSpace: "nowrap" }}>
               <span>{t.icon}</span>{t.label}
             </button>
           ))}
         </div>
         <button onClick={logout} style={{ fontSize: "12px", color: S.muted, background: "transparent", border: `1px solid ${S.border}`, cursor: "pointer", padding: "6px 12px", borderRadius: "8px" }}>Sign out</button>
       </div>
+
       <div style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem 1.5rem" }}>
         {tab === "stats" && <StatsTab />}
-        {tab === "pdfs" && <PdfsTab />}
+        {tab === "pdfs" && <AdminPdfsTab />}
         {tab === "requests" && <AdminRequestsTab token={getToken()} />}
         {tab === "users" && <UsersTab />}
         {tab === "seed" && <SeedTab />}
