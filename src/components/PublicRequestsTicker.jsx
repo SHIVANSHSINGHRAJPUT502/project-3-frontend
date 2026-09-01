@@ -1,28 +1,41 @@
 // src/components/PublicRequestsTicker.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { Clock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+
+const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
 
 export default function PublicRequestsTicker() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        const res = await axios.get('https://studynexusbackend.vercel.app/api/requests/recent');
-        setRequests(res.data);
-      } catch (err) {
-        console.error('Failed to load recent requests', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRecent();
+  const fetchRecent = useCallback(async (isInitial = false) => {
+    try {
+      if (isInitial) setLoading(true);
+      const res = await axios.get(`${API}/api/requests/recent`);
+      setRequests(res.data || []);
+    } catch (err) {
+      console.error('Failed to load recent requests', err);
+    } finally {
+      if (isInitial) setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    // 1. Initial fetch on mount
+    fetchRecent(true);
+
+    // 2. Poll every 10 seconds in the background
+    const interval = setInterval(() => {
+      fetchRecent(false);
+    }, 10000);
+
+    // 3. Clear interval on unmount
+    return () => clearInterval(interval);
+  }, [fetchRecent]);
+
   const getStatusBadge = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'resolved':
         return (
           <span className="flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -30,6 +43,7 @@ export default function PublicRequestsTicker() {
           </span>
         );
       case 'in-progress':
+      case 'uploading':
         return (
           <span className="flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <Loader2 size={10} className="animate-spin" /> Uploading
@@ -53,7 +67,10 @@ export default function PublicRequestsTicker() {
             Community Requests
           </span>
         </div>
-        <span className="text-[10px] font-mono text-slate-500">Live Activity</span>
+        <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Live Activity
+        </div>
       </div>
 
       {loading ? (

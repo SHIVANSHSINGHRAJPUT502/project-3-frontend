@@ -1,12 +1,12 @@
 // src/components/SemesterView.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, FileText, UploadCloud, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import { GlassCard } from './GlassCard';
 import { ContributeModal } from './ContributeModal';
 
-const API = "https://studynexusbackend.vercel.app";
+const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 
 const COLOR_KEYS = ['blue', 'purple', 'amber', 'emerald', 'rose', 'cyan'];
 
@@ -29,22 +29,39 @@ export const SemesterView = () => {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
+  // Background-capable fetcher
+  const fetchSubjects = useCallback(async (isSilent = false) => {
+    try {
+      if (!isSilent) {
         setLoading(true);
         setError(null);
-        const response = await axios.get(`${API}/api/subjects/${semId}`);
-        setSubjects(response.data || []);
-      } catch (err) {
-        console.error("API Fetch Error:", err);
+      }
+      const response = await axios.get(`${API}/api/subjects/${semId}`);
+      setSubjects(response.data || []);
+    } catch (err) {
+      console.error("API Fetch Error:", err);
+      if (!isSilent) {
         setError("Failed to connect to the server.");
-      } finally {
+      }
+    } finally {
+      if (!isSilent) {
         setLoading(false);
       }
-    };
-    fetchSubjects();
+    }
   }, [semId]);
+
+  useEffect(() => {
+    // 1. Initial fetch on component mount / semester change
+    fetchSubjects(false);
+
+    // 2. Poll every 10 seconds in the background
+    const interval = setInterval(() => {
+      fetchSubjects(true);
+    }, 10000);
+
+    // 3. Clear interval on unmount
+    return () => clearInterval(interval);
+  }, [fetchSubjects]);
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
@@ -62,7 +79,7 @@ export const SemesterView = () => {
         <p className="text-slate-400 text-sm">Select a subject to access Notes, PYQs and Syllabus.</p>
       </div>
 
-      {/* Loading Spinner */}
+      {/* Loading Spinner (Only on first mount) */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -143,7 +160,7 @@ export const SemesterView = () => {
             )}
           </div>
 
-          {/* ── Blue Contribution Banner at Bottom ── */}
+          {/* ── Contribution Banner at Bottom ── */}
           <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-blue-950/40 via-slate-900/60 to-cyan-950/40 border border-blue-500/20 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
             <div className="space-y-1 text-center sm:text-left">
               <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -166,7 +183,7 @@ export const SemesterView = () => {
         </>
       )}
 
-      {/* ── SEPARATE IMPORTED MODAL COMPONENT ── */}
+      {/* ── Modal Component ── */}
       <ContributeModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
