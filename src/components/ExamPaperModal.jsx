@@ -1,8 +1,9 @@
 // src/components/ExamPaperModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, FileText, Sparkles, Send, Loader2, Download, BookOpen, Layers, Terminal } from 'lucide-react';
+import { X, FileText, Sparkles, Send, Loader2, Download, BookOpen, Layers, Terminal, Mic, Volume2 } from 'lucide-react';
 import axios from 'axios';
+import { playAnyaVoice } from '../utils/voiceAssistant.js';
 
 const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
 
@@ -11,11 +12,12 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
   const [prompt, setPrompt] = useState('');
   const [solution, setSolution] = useState('');
   const [isSolving, setIsSolving] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   if (!isOpen || !paperData) return null;
 
   const pdfTargetUrl = paperData.url || paperData.s3Url;
-  // Reliable embed wrapper to prevent blank iframe blocks
   const embedViewerUrl = pdfTargetUrl 
     ? `https://docs.google.com/gview?url=${encodeURIComponent(pdfTargetUrl)}&embedded=true`
     : null;
@@ -35,6 +37,8 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
 
       if (res.data?.answer) {
         setSolution(res.data.answer);
+        // Sarah speaks the derived solution summary
+        playAnyaVoice(res.data.answer.slice(0, 260));
       } else {
         setSolution('No direct mathematical or theoretical derivation returned. Please try rephrasing your question.');
       }
@@ -46,7 +50,30 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
     }
   };
 
-  // Dynamic quick-prompt buttons based on subject
+  // Hands-free voice trigger inside the full screen
+  const toggleVoice = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.onstart = () => setIsListening(true);
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      recognition.onresult = (event) => {
+        const voiceQuery = event.results[0][0].transcript;
+        setPrompt(voiceQuery);
+        handleSolveQuestion(voiceQuery);
+      };
+      recognitionRef.current = recognition;
+      recognition.start();
+    }
+  };
+
   const renderQuickPresets = () => {
     const sub = (paperData.subject || '').toLowerCase();
 
@@ -94,9 +121,14 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
       );
     }
 
-    // Universal Fallback Presets
     return (
       <>
+        <button
+          onClick={() => handleSolveQuestion('Summarize this question paper and list all key topics tested with marks distribution.')}
+          className="text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-white/10 rounded-lg text-cyan-400 transition"
+        >
+          ⚡ Summarize Paper
+        </button>
         <button
           onClick={() => handleSolveQuestion('Solve Question 1 completely with step-by-step mathematical logic.')}
           className="text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-white/10 rounded-lg text-slate-300 transition"
@@ -104,10 +136,10 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
           ⚡ Solve Question 1
         </button>
         <button
-          onClick={() => handleSolveQuestion('Provide a complete high-scoring revision summary of all long-answer questions in this paper.')}
+          onClick={() => handleSolveQuestion('Provide complete solutions to all numerical problems in this paper.')}
           className="text-[11px] px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-white/10 rounded-lg text-slate-300 transition"
         >
-          ⚡ High-Yield Answers
+          ⚡ Solve All Numericals
         </button>
       </>
     );
@@ -130,7 +162,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
               </div>
               <div className="min-w-0">
                 <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
-                  {paperData.title || 'Previous Year Question Paper'}
+                  {paperData.title || 'Exam Document Workspace'}
                 </h2>
                 <p className="text-[10px] font-mono text-slate-400 truncate">
                   {paperData.subject} • Semester {paperData.semester} • {paperData.type || 'PYQ'}
@@ -221,9 +253,9 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
               <div className="p-3.5 border-b border-white/10 bg-slate-950/40 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs font-mono">
                   <Sparkles size={14} className="animate-pulse" />
-                  <span>AI EXAM DERIVATION SOLVER</span>
+                  <span>SARAH EXAM DERIVATION SOLVER</span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500">Gemini Flash</span>
+                <span className="text-[10px] font-mono text-slate-500">Gemini Flash Live</span>
               </div>
 
               {/* Solution Workspace */}
@@ -243,7 +275,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
                       <Terminal size={20} />
                     </div>
                     <p className="text-xs leading-normal">
-                      Click a quick preset or type any question from the left document to generate the step-by-step derivation.
+                      Speak or click a quick action to generate the real-time derivation:
                     </p>
                     <div className="flex flex-wrap gap-1.5 justify-center pt-2">
                       {renderQuickPresets()}
@@ -252,14 +284,25 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
                 )}
               </div>
 
-              {/* Input Area */}
+              {/* Input Area with Hands-Free Mic */}
               <div className="p-3 sm:p-4 border-t border-white/10 bg-slate-950/70 flex items-center gap-2">
+                <button
+                  onClick={toggleVoice}
+                  className={`p-2 rounded-xl border transition ${
+                    isListening 
+                      ? 'bg-rose-500 text-white border-rose-400 animate-pulse' 
+                      : 'bg-slate-900 border-white/10 text-slate-400 hover:text-cyan-400'
+                  }`}
+                  title="Speak to solve"
+                >
+                  <Mic size={14} />
+                </button>
                 <input
                   type="text"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSolveQuestion()}
-                  placeholder="e.g. Solve Question 2(b) or derive LR items..."
+                  placeholder="Ask: 'solve Q2', 'derive FIRST & FOLLOW', etc..."
                   className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/40"
                 />
                 <button
