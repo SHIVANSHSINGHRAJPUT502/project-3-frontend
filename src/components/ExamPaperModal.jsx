@@ -1,5 +1,6 @@
 // src/components/ExamPaperModal.jsx
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, FileText, Sparkles, Send, Loader2, Download, BookOpen, Layers, Terminal, Mic, Volume2 } from 'lucide-react';
 import axios from 'axios';
@@ -56,9 +57,12 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
     if (!SpeechRecognition) return;
 
     if (isListening) {
-      recognitionRef.current?.stop();
+      try { recognitionRef.current?.stop(); } catch (_) {}
       setIsListening(false);
     } else {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
       const recognition = new SpeechRecognition();
       recognition.lang = 'en-US';
       recognition.onstart = () => setIsListening(true);
@@ -70,7 +74,11 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
         handleSolveQuestion(voiceQuery);
       };
       recognitionRef.current = recognition;
-      recognition.start();
+      try {
+        recognition.start();
+      } catch (_) {
+        setIsListening(false);
+      }
     }
   };
 
@@ -145,14 +153,14 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
     );
   };
 
-  return (
+  const modalNode = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 15 }}
-          className="bg-[#0b1120] border border-white/10 rounded-2xl w-full max-w-7xl h-[94vh] flex flex-col overflow-hidden shadow-2xl"
+          className="bg-[#0b1120] border border-white/10 rounded-2xl w-full max-w-7xl h-[94vh] flex flex-col overflow-hidden shadow-2xl relative z-[10000]"
         >
           {/* Top Bar */}
           <div className="h-16 px-4 sm:px-6 border-b border-white/10 bg-slate-950/80 flex items-center justify-between shrink-0">
@@ -215,7 +223,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
           {/* Dual-Pane Layout */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
             
-            {/* Left Column: PDF Stream */}
+            {/* Left Column: PDF Stream or Dynamic Workspace */}
             <div
               className={`flex-1 h-full bg-slate-950 border-r border-white/5 flex flex-col ${
                 activeTab === 'paper' ? 'flex' : 'hidden md:flex'
@@ -226,7 +234,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
                   <Layers size={13} className="text-cyan-400" />
                   DOCUMENT WORKSPACE
                 </span>
-                <span className="text-[10px] text-emerald-400">Live Preview</span>
+                <span className="text-[10px] text-emerald-400">Live Active</span>
               </div>
               <div className="flex-1 w-full h-full bg-slate-900/20 relative">
                 {embedViewerUrl ? (
@@ -236,9 +244,22 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
                     className="w-full h-full border-0"
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-2">
-                    <BookOpen size={36} />
-                    <p className="text-xs font-mono">No direct document stream available.</p>
+                  <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3 px-6 text-center">
+                    <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                      <BookOpen size={36} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Live Virtual Exam Space</h4>
+                      <p className="text-xs text-slate-400 max-w-sm mt-1">
+                        Active syllabus question solver primed for {paperData.subject}. Use the right pane or presets to derive university examination solutions in real time.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('solver')}
+                      className="md:hidden px-3 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs"
+                    >
+                      Open Solver Workspace
+                    </button>
                   </div>
                 )}
               </div>
@@ -320,6 +341,8 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData }) => {
       </div>
     </AnimatePresence>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : null;
 };
 
 export default ExamPaperModal;
