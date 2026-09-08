@@ -25,6 +25,16 @@ export default function App() {
     photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=shivansh"
   };
 
+  // ── 1. Developer Console Signature (Visible in F12 / Inspect) ───────────────
+  useEffect(() => {
+    console.log(
+      `%c StudyNexus %c Designed & Engineered by Shivansh Singh Rajput %c`,
+      'background: #0284c7; color: #fff; font-weight: bold; padding: 3px 6px; border-radius: 4px 0 0 4px;',
+      'background: #0f172a; color: #38bdf8; font-family: monospace; padding: 3px 6px; border: 1px solid #0284c7; border-radius: 0 4px 4px 0;',
+      'background: transparent'
+    );
+  }, []);
+
   const fetchRecentRequests = async () => {
     try {
       const res = await axios.get('https://studynexusbackend.vercel.app/api/admin/requests/recent');
@@ -135,7 +145,7 @@ export default function App() {
           </Link>
         </div>
 
-        {/* ── VERTICAL STACK OF LIVE REQUESTS UNDER RELAX ZONE ── */}
+        {/* Vertical Stack of Live Requests */}
         <div className="flex-1 overflow-y-auto px-4 py-2 border-t border-white/5 space-y-2 custom-scrollbar">
           <div className="flex items-center justify-between px-1 mb-2">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
@@ -229,13 +239,27 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#090d16] via-[#0d1322] to-[#090d16] p-4 sm:p-6 md:p-8">
-          <Routes>
-            <Route path="/" element={<DashboardView />} />
-            <Route path="/semester/:semId" element={<SemesterView />} />
-            <Route path="/relax" element={<RelaxZoneView />} />
-            <Route path="/subject/:semId/:subjectName" element={<SubjectView />} />
-          </Routes>
+        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#090d16] via-[#0d1322] to-[#090d16] p-4 sm:p-6 md:p-8 flex flex-col justify-between">
+          <div className="flex-1">
+            <Routes>
+              <Route path="/" element={<DashboardView />} />
+              <Route path="/semester/:semId" element={<SemesterView />} />
+              <Route path="/relax" element={<RelaxZoneView />} />
+              <Route path="/subject/:semId/:subjectName" element={<SubjectView />} />
+            </Routes>
+          </div>
+
+          {/* ── 2. Clean Engineering Footer Attribution ── */}
+          <footer className="mt-16 pt-6 pb-2 border-t border-white/5 text-center shrink-0">
+            <p className="text-[11px] font-mono text-slate-500 tracking-wider">
+              ENGINEERED BY{' '}
+              <span className="text-slate-300 font-semibold hover:text-cyan-400 transition-colors cursor-default">
+                SHIVANSH SINGH RAJPUT
+              </span>
+              <span className="mx-2 text-slate-700">•</span>
+              STUDYNEXUS CORE v2.4
+            </p>
+          </footer>
         </main>
 
         {/* ── LEFT FLOATING WIDGET: Request Notes ── */}
