@@ -1,17 +1,17 @@
 // src/components/SubjectView.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { BookOpen, AlertTriangle, FileText, GraduationCap, ScrollText } from 'lucide-react';
+import { BookOpen, AlertTriangle, FileText, GraduationCap, ScrollText, Sparkles, Download } from 'lucide-react';
 import axios from 'axios';
 import { GlassCard } from './GlassCard';
+import AiStudyModal from './AiStudyModal';
 
-// ✅ Updated to your live custom production backend domain
-const API = "https://studynexusbackend.vercel.app";
+const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 
 const TYPE_CONFIG = {
-  notes:     { label: 'Notes',                icon: BookOpen,      color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },
+  notes:     { label: 'Notes',                    icon: BookOpen,      color: '#3b82f6', bg: '#3b82f615', desc: 'Lecture notes and study material' },
   pyq:       { label: 'Previous Year Questions', icon: ScrollText,    color: '#8b5cf6', bg: '#8b5cf615', desc: 'Past exam papers and solutions' },
-  syllabus: { label: 'Syllabus',               icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
+  syllabus: { label: 'Syllabus',                  icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
 };
 
 export const SubjectView = () => {
@@ -21,6 +21,9 @@ export const SubjectView = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // State to control AI Exam Tutor Modal
+  const [selectedAiPdf, setSelectedAiPdf] = useState(null);
+
   useEffect(() => {
     const fetchPdfs = async () => {
       setLoading(true);
@@ -29,7 +32,7 @@ export const SubjectView = () => {
         const response = await axios.get(
           `${API}/api/notes/${semId}/${encodeURIComponent(subjectName)}/${activeType}`
         );
-        setPdfs(response.data);
+        setPdfs(response.data || []);
       } catch (err) {
         console.error("PDF Fetch Error:", err);
         setError("Failed to fetch PDFs.");
@@ -58,10 +61,10 @@ export const SubjectView = () => {
             Semester {semId}
           </span>
         </div>
-        <p className="text-slate-400 text-sm">Select a category to access resources.</p>
+        <p className="text-slate-400 text-sm">Select a category to access resources or ask the AI tutor to solve questions.</p>
       </div>
 
-      {/* Notes / PYQ / Syllabus type selector */}
+      {/* Category selector buttons */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Object.entries(TYPE_CONFIG).map(([type, cfg]) => {
           const CardIcon = cfg.icon;
@@ -119,44 +122,82 @@ export const SubjectView = () => {
           <div className="text-center py-16 border border-dashed border-white/5 rounded-2xl bg-slate-950/40">
             <FileText className="text-slate-600 mx-auto mb-3" size={32} />
             <p className="text-sm text-slate-400 font-medium">No {config.label} uploaded yet</p>
-            <p className="text-xs text-slate-600 mt-1">Contact Admin</p>
+            <p className="text-xs text-slate-600 mt-1">Check back soon or request them via the support widget.</p>
           </div>
         )}
 
         {!loading && !error && pdfs.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pdfs.map((pdf) => (
-              <GlassCard key={pdf._id} className="relative group border-white/5 hover:border-blue-500/20">
+              <GlassCard key={pdf._id} className="relative group border-white/5 hover:border-blue-500/20 flex flex-col justify-between">
                 <div
                   style={{ background: `linear-gradient(to bottom, ${config.color}, transparent)` }}
                   className="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl"
                 />
-                <div className="pl-2 space-y-4">
-                  <div className="flex items-center gap-2">
+                
+                <div className="pl-2 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
                     <span
                       style={{ background: config.bg, color: config.color, border: `1px solid ${config.color}44` }}
-                      className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider"
+                      className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider font-mono"
                     >
                       {pdf.type || activeType}
                     </span>
+                    
+                    {/* Ask AI Tag / Trigger */}
+                    <button
+                      onClick={() => setSelectedAiPdf(pdf)}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 px-2.5 py-0.5 rounded-md transition-all active:scale-95 shadow-sm"
+                    >
+                      <Sparkles size={12} className="text-cyan-400" />
+                      <span>Ask AI</span>
+                    </button>
                   </div>
-                  <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
+
+                  <h3 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
                     {pdf.title}
                   </h3>
+                </div>
+
+                {/* Bottom Action Buttons */}
+                <div className="pl-2 pt-4 mt-3 border-t border-white/5 flex items-center gap-2">
                   <a
                     href={`https://docs.google.com/viewer?url=${encodeURIComponent(pdf.s3Url)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
+                    className="flex-1 py-2 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    <BookOpen size={13} className="text-slate-400" /> View Document
+                    <BookOpen size={13} className="text-slate-400" />
+                    <span>View</span>
                   </a>
+
+                  {pdf.s3Url && (
+                    <a
+                      href={pdf.s3Url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="p-2 bg-slate-800/80 hover:bg-blue-600 hover:text-white rounded-xl text-slate-300 transition-all border border-white/5 flex items-center justify-center active:scale-95"
+                      title="Download PDF"
+                    >
+                      <Download size={14} />
+                    </a>
+                  )}
                 </div>
               </GlassCard>
             ))}
           </div>
         )}
       </div>
+
+      {/* AI Document Study Modal */}
+      <AiStudyModal
+        isOpen={Boolean(selectedAiPdf)}
+        pdf={selectedAiPdf}
+        onClose={() => setSelectedAiPdf(null)}
+      />
     </div>
   );
 };
+
+export default SubjectView;
