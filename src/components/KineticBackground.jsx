@@ -1,128 +1,287 @@
 // src/components/KineticBackground.jsx
-import React, { useEffect } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
 
 export const KineticBackground = () => {
-  const initialX = typeof window !== 'undefined' ? window.innerWidth / 2 : 500;
-  const initialY = typeof window !== 'undefined' ? window.innerHeight / 2 : 300;
-
-  const mouseX = useMotionValue(initialX);
-  const mouseY = useMotionValue(initialY);
-
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    const handleMove = (e) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+
+    const resize = () => {
+      canvas.width = window.innerWidth * window.devicePixelRatio;
+      canvas.height = window.innerHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
-    window.addEventListener('mousemove', handleMove);
-    return () => window.removeEventListener('mousemove', handleMove);
-  }, [mouseX, mouseY]);
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ── Generate 3D Spherical Point-Cloud ──
+    const POINT_COUNT = 160;
+    const RADIUS = 140;
+    const points = [];
+
+    for (let i = 0; i < POINT_COUNT; i++) {
+      const phi = Math.acos(1 - (2 * (i + 0.5)) / POINT_COUNT);
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+      points.push({
+        x: RADIUS * Math.sin(phi) * Math.cos(theta),
+        y: RADIUS * Math.sin(phi) * Math.sin(theta),
+        z: RADIUS * Math.cos(phi),
+        baseRadius: Math.random() * 1.5 + 0.8,
+        pulseOffset: Math.random() * Math.PI * 2
+      });
+    }
+
+    // ── 3D Rotation Physics ──
+    let rotX = 0.25;
+    let rotY = 0;
+    let velX = 0.0015;
+    let velY = 0.0035;
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    const onMouseDown = (e) => {
+      // Only drag if clicking in upper hero/interactive zone
+      if (e.clientY < window.innerHeight * 0.65) {
+        isDragging = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    };
+
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      rotY += dx * 0.007;
+      rotX += dy * 0.007;
+      velY = dx * 0.0025;
+      velX = dy * 0.0025;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+    };
+
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    // Touch events for mobile devices
+    const onTouchStart = (e) => {
+      if (e.touches.length === 1 && e.touches[0].clientY < window.innerHeight * 0.65) {
+        isDragging = true;
+        lastMouseX = e.touches[0].clientX;
+        lastMouseY = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const dx = e.touches[0].clientX - lastMouseX;
+      const dy = e.touches[0].clientY - lastMouseY;
+      rotY += dx * 0.007;
+      rotX += dy * 0.007;
+      velY = dx * 0.0025;
+      velX = dy * 0.0025;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+    };
+
+    const onTouchEnd = () => {
+      isDragging = false;
+    };
+
+    window.addEventListener('touchstart', onTouchStart);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onTouchEnd);
+
+    // ── Render Engine ──
+    let tick = 0;
+    const render = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // Center the 3D sphere in the upper right/center hero area
+      const isDesktop = width >= 1024;
+      const cx = isDesktop ? width * 0.72 : width * 0.5;
+      const cy = isDesktop ? height * 0.32 : height * 0.28;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Autonomous rotation drift
+      if (!isDragging) {
+        rotX += velX;
+        rotY += velY;
+        velX *= 0.985;
+        velY *= 0.985;
+        if (Math.abs(velX) < 0.001) velX = 0.0012;
+        if (Math.abs(velY) < 0.002) velY = 0.0028;
+      }
+
+      tick += 0.02;
+
+      // ── Outer 3D Orbit Ring ──
+      const ringRadius = 185;
+      const ringSegments = 50;
+      ctx.beginPath();
+      for (let j = 0; j <= ringSegments; j++) {
+        const angle = (j / ringSegments) * Math.PI * 2;
+        const rx = ringRadius * Math.cos(angle);
+        const rz = ringRadius * Math.sin(angle);
+
+        const cosY = Math.cos(rotY * 0.7);
+        const sinY = Math.sin(rotY * 0.7);
+        const cosX = Math.cos(rotX * 0.7 + 0.35);
+        const sinX = Math.sin(rotX * 0.7 + 0.35);
+
+        const x1 = rx * cosY + rz * sinY;
+        const z1 = -rx * sinY + rz * cosY;
+        const y2 = -z1 * sinX;
+        const z2 = z1 * cosX;
+
+        const fov = 400;
+        const scale = fov / (fov + z2);
+        const projX = cx + x1 * scale;
+        const projY = cy + y2 * scale;
+
+        if (j === 0) ctx.moveTo(projX, projY);
+        else ctx.lineTo(projX, projY);
+      }
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.25)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // ── Project 3D Sphere Points ──
+      const projected = [];
+      const cosY = Math.cos(rotY);
+      const sinY = Math.sin(rotY);
+      const cosX = Math.cos(rotX);
+      const sinX = Math.sin(rotX);
+
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+
+        const x1 = p.x * cosY + p.z * sinY;
+        const z1 = -p.x * sinY + p.z * cosY;
+        const y2 = p.y * cosX - z1 * sinX;
+        const z2 = p.y * sinX + z1 * cosX;
+
+        const fov = 420;
+        const scale = fov / (fov + z2);
+        const projX = cx + x1 * scale;
+        const projY = cy + y2 * scale;
+
+        projected.push({
+          x: projX,
+          y: projY,
+          z: z2,
+          scale,
+          pulse: Math.sin(tick * 2 + p.pulseOffset) * 0.5 + 0.5,
+          baseRadius: p.baseRadius
+        });
+      }
+
+      // Depth sort so foreground points draw over background points
+      projected.sort((a, b) => b.z - a.z);
+
+      // Connective Neural Traces
+      for (let i = 0; i < projected.length; i++) {
+        const p1 = projected[i];
+        if (p1.z > 20) continue;
+
+        for (let k = i + 1; k < Math.min(i + 5, projected.length); k++) {
+          const p2 = projected[k];
+          const distSq = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
+          if (distSq < 1600) {
+            const alpha = (1 - distSq / 1600) * 0.22;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Render Nodes
+      for (let i = 0; i < projected.length; i++) {
+        const p = projected[i];
+        const depthAlpha = (p.z + RADIUS) / (RADIUS * 2);
+        const alpha = Math.max(0.18, Math.min(0.95, 1 - depthAlpha * 0.65));
+        const r = Math.max(0.7, (p.baseRadius + p.pulse * 0.8) * p.scale);
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+
+        if (p.z < -30) {
+          ctx.fillStyle = `rgba(165, 243, 252, ${alpha})`;
+          ctx.shadowColor = 'rgba(6, 182, 212, 0.8)';
+          ctx.shadowBlur = 6;
+        } else {
+          ctx.fillStyle = `rgba(59, 130, 246, ${alpha * 0.6})`;
+          ctx.shadowBlur = 0;
+        }
+        ctx.fill();
+      }
+
+      ctx.shadowBlur = 0;
+
+      // Ambient Core Glow
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 90);
+      grad.addColorStop(0, 'rgba(6, 182, 212, 0.16)');
+      grad.addColorStop(0.6, 'rgba(99, 102, 241, 0.07)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 90, 0, Math.PI * 2);
+      ctx.fill();
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#060a14]">
-      {/* ── 1. High-Tech Perspective Matrix Grid ── */}
+    <div className="fixed inset-0 overflow-hidden z-0 bg-[#060a14] pointer-events-none">
+      {/* ── Perspective Grid Underlay ── */}
       <div 
         className="absolute inset-0 opacity-20"
         style={{
           backgroundImage: `
-            linear-gradient(to right, rgba(6, 182, 212, 0.15) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(59, 130, 246, 0.15) 1px, transparent 1px)
+            linear-gradient(to right, rgba(6, 182, 212, 0.14) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(59, 130, 246, 0.14) 1px, transparent 1px)
           `,
-          backgroundSize: '48px 48px',
-          maskImage: 'radial-gradient(ellipse 85% 70% at 50% 30%, black 40%, transparent 95%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 85% 70% at 50% 30%, black 40%, transparent 95%)'
+          backgroundSize: '44px 44px',
+          maskImage: 'radial-gradient(ellipse 90% 70% at 50% 30%, black 45%, transparent 95%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 90% 70% at 50% 30%, black 45%, transparent 95%)'
         }}
       />
 
-      {/* ── 2. Floating Ambient Horizon Wave (Replaces sharp laser line) ── */}
-      <motion.div
-        animate={{
-          y: [-120, 620, -120],
-          opacity: [0.15, 0.45, 0.15],
-          scaleY: [1, 1.4, 1]
-        }}
-        transition={{
-          duration: 14,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute left-0 right-0 h-16 bg-gradient-to-b from-transparent via-cyan-500/15 to-transparent blur-xl"
-      />
-
-      {/* ── 3. Primary Cyan Aurora Plasma (Upper Hero Section) ── */}
-      <motion.div
-        animate={{
-          x: [0, 90, -70, 40, 0],
-          y: [0, -60, 50, -30, 0],
-          scale: [1, 1.22, 0.95, 1.15, 1],
-          opacity: [0.35, 0.55, 0.3, 0.5, 0.35]
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-16 left-1/4 w-[600px] h-[480px] rounded-full bg-cyan-500/30 blur-[90px]"
-      />
-
-      {/* ── 4. Deep Violet Nexus Cluster (Right Workspace Area) ── */}
-      <motion.div
-        animate={{
-          x: [0, -100, 70, -40, 0],
-          y: [0, 70, -50, 40, 0],
-          scale: [1.05, 0.9, 1.18, 0.95, 1.05],
-          opacity: [0.3, 0.5, 0.25, 0.45, 0.3]
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        className="absolute top-28 right-12 w-[620px] h-[520px] rounded-full bg-indigo-600/30 blur-[100px]"
-      />
-
-      {/* ── 5. Emerald Horizon Current (Lower Semester Matrices) ── */}
-      <motion.div
-        animate={{
-          x: [0, 60, -70, 0],
-          y: [0, -40, 50, 0],
-          scale: [0.95, 1.12, 0.9, 0.95],
-          opacity: [0.25, 0.45, 0.2, 0.25]
-        }}
-        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut', delay: 2.5 }}
-        className="absolute bottom-8 left-12 w-[520px] h-[420px] rounded-full bg-emerald-500/20 blur-[95px]"
-      />
-
-      {/* ── 6. Subtle Floating Ambient Starlight Motes ── */}
-      <motion.div
-        animate={{
-          y: [0, -40, 0],
-          opacity: [0.3, 0.8, 0.3]
-        }}
-        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-1/4 left-1/5 w-1 h-1 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)]"
-      />
-      <motion.div
-        animate={{
-          y: [0, -50, 0],
-          opacity: [0.2, 0.7, 0.2]
-        }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute top-1/3 right-1/3 w-1.5 h-1.5 rounded-full bg-indigo-300 shadow-[0_0_10px_rgba(165,180,252,0.8)]"
-      />
-      <motion.div
-        animate={{
-          y: [0, -35, 0],
-          opacity: [0.25, 0.75, 0.25]
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 4 }}
-        className="absolute bottom-1/3 left-1/2 w-1 h-1 rounded-full bg-purple-300 shadow-[0_0_8px_rgba(216,180,254,0.8)]"
-      />
-
-      {/* ── 7. Smooth Interactive Cursor Light Field ── */}
-      <motion.div
-        style={{ 
-          x: springX, 
-          y: springY, 
-          translateX: '-50%', 
-          translateY: '-50%' 
-        }}
-        className="hidden md:block absolute w-[420px] h-[420px] rounded-full bg-cyan-400/15 blur-[80px]"
+      {/* ── Interactive 3D Canvas ── */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
       />
     </div>
   );
