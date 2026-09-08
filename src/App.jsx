@@ -1,10 +1,12 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell, Clock, CheckCircle2, Users, BookOpen } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Sparkles, Search, Bell, Users, BookOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 
+import { KineticBackground } from './components/KineticBackground.jsx';
+import { SidebarNav } from './components/SidebarNav.jsx';
 import { SubjectView } from './components/SubjectView.jsx';
 import { DashboardView } from "./components/DashboardView.jsx";
 import { SemesterView } from './components/SemesterView.jsx';
@@ -15,15 +17,24 @@ import SupportWidget from './components/SupportWidget.jsx';
 
 const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
 
+function getDeviceVisitorId() {
+  if (typeof window === 'undefined') return 'server_ssr';
+  let id = localStorage.getItem('studynexus_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+    localStorage.setItem('studynexus_device_id', id);
+  }
+  return id;
+}
+
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
   const [requests, setRequests] = useState([]);
   const [activeUsersCount, setActiveUsersCount] = useState(1);
-  const location = useLocation();
 
-  // ── Live Database Subject Search States ──
   const [liveSubjects, setLiveSubjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchDropdownOpen, setSearchDropdownOpen] = useState(false);
@@ -33,23 +44,10 @@ export default function App() {
     photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=shivansh"
   };
 
-  // ── 1. Developer Console Signature ──
-  useEffect(() => {
-    console.log(
-      `%c StudyNexus %c Designed & Engineered by Shivansh Singh Rajput %c`,
-      'background: #0284c7; color: #fff; font-weight: bold; padding: 3px 6px; border-radius: 4px 0 0 4px;',
-      'background: #0f172a; color: #38bdf8; font-family: monospace; padding: 3px 6px; border: 1px solid #0284c7; border-radius: 0 4px 4px 0;',
-      'background: transparent'
-    );
-  }, []);
-
-  // Fetch only live database subjects
   const fetchLiveSubjects = async () => {
     try {
       const res = await axios.get(`${API}/api/live-subjects`);
-      if (Array.isArray(res.data)) {
-        setLiveSubjects(res.data);
-      }
+      if (Array.isArray(res.data)) setLiveSubjects(res.data);
     } catch (err) {
       console.error('Failed to load live subjects catalog', err);
     }
@@ -66,10 +64,13 @@ export default function App() {
 
   const sendHeartbeatAndFetchUsers = async () => {
     try {
-      await axios.post(`${API}/api/heartbeat`);
+      const visitorId = getDeviceVisitorId();
+      await axios.post(`${API}/api/heartbeat`, { visitorId });
       const res = await axios.get(`${API}/api/active-users`);
       if (res.data && typeof res.data.count === 'number') {
         setActiveUsersCount(res.data.count);
+      } else if (res.data && typeof res.data.activeUsers === 'number') {
+        setActiveUsersCount(res.data.activeUsers);
       }
     } catch (err) {
       console.error('Heartbeat sync error', err);
@@ -90,16 +91,9 @@ export default function App() {
     };
   }, []);
 
-  const handleLinkClick = () => {
-    if (window.innerWidth < 768) setSidebarOpen(false);
-  };
-
-  // Filter live subjects in real time
   const filteredSubjects = searchQuery.trim()
     ? liveSubjects
-        .filter((item) =>
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        .filter((item) => item.name?.toLowerCase().includes(searchQuery.toLowerCase()))
         .slice(0, 6)
     : [];
 
@@ -112,14 +106,15 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex font-sans antialiased selection:bg-blue-500/30 selection:text-blue-200 overflow-x-hidden w-full">
-      
+    <div className="min-h-screen text-slate-100 flex font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden w-full relative">
+      <KineticBackground />
+
       {/* Mobile Topbar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 z-50 flex items-center justify-between px-4">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <div style={{ background: 'linear-gradient(to top right, #2563eb, #06b6d4, #60a5fa)' }} className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-white text-sm shadow-md">Ω</div>
           <span style={{ background: 'linear-gradient(to right, #ffffff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} className="font-extrabold text-base tracking-wider">
-            Study<span className="text-blue-500">Nexus</span>
+            Study<span className="text-cyan-400">Nexus</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -133,194 +128,64 @@ export default function App() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-          />
-        )}
-      </AnimatePresence>
+      <SidebarNav isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} requests={requests} activeUsersCount={activeUsersCount} />
 
-      {/* Sidebar Navigation */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 md:z-40 md:sticky md:top-0
-        flex flex-col shrink-0 bg-slate-950 md:bg-slate-950/60 backdrop-blur-2xl border-r border-white/5 h-screen transition-all duration-300 overflow-hidden
-        ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-64'}
-      `}>
-        {/* Sidebar Header */}
-        <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-3">
-            <div style={{ background: 'linear-gradient(to top right, #2563eb, #06b6d4, #60a5fa)' }} className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20">Ω</div>
-            <span style={{ background: 'linear-gradient(to right, #ffffff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }} className="font-extrabold text-lg tracking-wider">
-              Study<span className="text-blue-500">Nexus</span>
-            </span>
-          </div>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 hover:bg-white/5 rounded-lg text-slate-400">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Navigation Section */}
-        <div className="p-4 space-y-2 shrink-0">
-          <Link to="/" onClick={handleLinkClick} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm border ${location.pathname === '/' || location.pathname.includes('/semester') ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-inner' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            <LayoutDashboard size={18} />
-            <span>System Dashboard</span>
-          </Link>
-          <Link to="/relax" onClick={handleLinkClick} className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all font-medium text-sm border ${location.pathname === '/relax' ? 'bg-blue-600/10 border-blue-500/20 text-blue-400 shadow-inner' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'}`}>
-            <Coffee size={18} />
-            <span>Relax Zone</span>
-          </Link>
-        </div>
-
-        {/* Live Requests Section */}
-        <div className="flex-1 overflow-y-auto px-4 py-2 border-t border-white/5 space-y-2 custom-scrollbar">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
-              <span>📑</span> Recent Requests
-            </span>
-            <span className="text-[9px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
-              {requests.length}
-            </span>
-          </div>
-
-          <div className="space-y-2">
-            {requests.length === 0 ? (
-              <p className="text-[11px] text-slate-500 font-mono px-2 py-4 text-center bg-slate-900/30 rounded-xl border border-white/5">
-                No active requests
-              </p>
-            ) : (
-              requests.map((req) => (
-                <div
-                  key={req._id}
-                  className="p-2.5 rounded-xl bg-slate-900/70 border border-white/5 hover:border-cyan-500/30 transition-all text-left group"
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[11px] font-semibold text-slate-200 truncate max-w-[100px]">
-                      {req.name || 'Student'}
-                    </span>
-                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                      S{req.semester}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
-                    {req.message}
-                  </p>
-                  <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-white/[0.04] text-[8px] text-slate-500 font-mono">
-                    <span className="flex items-center gap-0.5">
-                      <Clock size={8} /> {new Date(req.createdAt).toLocaleDateString()}
-                    </span>
-                    <span className="text-emerald-400 flex items-center gap-0.5">
-                      <CheckCircle2 size={8} /> In Queue
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-        
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-white/5 bg-slate-950/40 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-mono text-slate-400 font-semibold tracking-wider">
-              {activeUsersCount} Active {activeUsersCount === 1 ? 'User' : 'Users'}
-            </span>
-          </div>
-          <span className="text-[9px] font-mono text-slate-600 uppercase">Live</span>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen relative pt-16 md:pt-0">
-        
-        <header className="h-20 border-b border-white/5 bg-slate-950/20 backdrop-blur-md flex items-center px-4 sm:px-6 md:px-10 justify-between relative z-30">
-          {/* Functional Real-Time Search Bar */}
+        <header className="h-20 border-b border-white/5 bg-slate-950/30 backdrop-blur-2xl flex items-center px-4 sm:px-6 md:px-10 justify-between relative z-30">
           <div className="flex items-center gap-4 flex-1">
             <div className="max-w-md w-full relative hidden sm:block">
-              <div className="relative">
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search subjects in database..."
-                  value={searchQuery}
-                  onFocus={() => setSearchDropdownOpen(true)}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setSearchDropdownOpen(true);
-                  }}
-                  className="w-full bg-slate-900/50 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-cyan-500/40 transition-colors text-slate-200 placeholder:text-slate-500"
-                />
-              </div>
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search subjects, PYQs, and notes in database..."
+                value={searchQuery}
+                onFocus={() => setSearchDropdownOpen(true)}
+                onChange={(e) => { setSearchQuery(e.target.value); setSearchDropdownOpen(true); }}
+                className="w-full bg-slate-900/60 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-cyan-500/50 transition-all text-slate-200 placeholder:text-slate-500 shadow-inner"
+              />
 
-              {/* Dynamic Live Dropdown */}
               {isSearchDropdownOpen && filteredSubjects.length > 0 && (
-                <div className="absolute top-full mt-2 left-0 right-0 bg-[#0c1322] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-xl">
-                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">
-                    Live Subjects Found
-                  </div>
+                <div className="absolute top-full mt-2 left-0 right-0 bg-[#0b1220]/95 border border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-2xl">
+                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">Live Database Records Found</div>
                   {filteredSubjects.map((item) => (
                     <button
                       key={`${item.sem}-${item.name}`}
-                      onClick={() => {
-                        navigate(`/subject/${item.sem}/${encodeURIComponent(item.name)}`);
-                        setSearchQuery('');
-                        setSearchDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-800/80 flex items-center justify-between transition group"
+                      onClick={() => { navigate(`/subject/${item.sem}/${encodeURIComponent(item.name)}`); setSearchQuery(''); setSearchDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 flex items-center justify-between transition group"
                     >
                       <div className="flex items-center gap-2">
                         <BookOpen size={14} className="text-cyan-400" />
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400">
-                          {item.name}
-                        </span>
+                        <span className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400">{item.name}</span>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        Sem {item.sem}
-                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Sem {item.sem}</span>
                     </button>
                   ))}
                 </div>
               )}
-
-              {/* Click-outside dismisser */}
-              {isSearchDropdownOpen && (
-                <div
-                  className="fixed inset-0 z-40 bg-transparent"
-                  onClick={() => setSearchDropdownOpen(false)}
-                />
-              )}
+              {isSearchDropdownOpen && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setSearchDropdownOpen(false)} />}
             </div>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Live Active Badge */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <Users size={13} className="text-emerald-400" />
               <span className="font-semibold">{activeUsersCount} Active</span>
             </div>
-
-            <button className="p-2.5 bg-slate-900/50 border border-white/5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors relative hidden xs:block">
+            <button className="p-2.5 bg-slate-900/60 border border-white/5 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-colors relative hidden xs:block">
               <Bell size={18} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
             </button>
-            <div className="h-9 w-[1px] bg-white/5 hidden xs:block" />
             <div className="flex items-center gap-2 sm:gap-3">
               <img src={user.photoURL} alt="Profile" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl border border-white/10 shadow-md object-cover bg-slate-800" />
-              <button onClick={() => alert("Cloud stack separation initialized.")} className="p-2 bg-slate-900/80 border border-white/5 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 rounded-xl transition-all flex items-center gap-1 font-semibold text-[11px] sm:text-xs">
+              <button onClick={() => alert("Cloud session isolated.")} className="p-2 bg-slate-900/80 border border-white/5 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 rounded-xl transition-all font-semibold text-[11px] sm:text-xs">
                 Logout
               </button>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#090d16] via-[#0d1322] to-[#090d16] p-4 sm:p-6 md:p-8 flex flex-col justify-between">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 flex flex-col justify-between">
           <div className="flex-1">
             <Routes>
               <Route path="/" element={<DashboardView />} />
@@ -330,7 +195,6 @@ export default function App() {
             </Routes>
           </div>
 
-          {/* ── Minimalist Engineering Footer Attribution ── */}
           <footer className="mt-16 pt-6 pb-2 border-t border-white/5 text-center shrink-0">
             <p className="text-[11px] font-mono text-slate-500 tracking-wider">
               ENGINEERED BY{' '}
@@ -338,41 +202,31 @@ export default function App() {
                 SHIVANSH SINGH RAJPUT
               </span>
               <span className="mx-2 text-slate-700">•</span>
-              STUDYNEXUS CORE v2.4
+              STUDYNEXUS CORE v2.5
             </p>
           </footer>
         </main>
 
-        {/* Floating Widgets */}
         <SupportWidget onSubmitted={fetchRecentRequests} />
 
-        <motion.button 
-          initial={{ opacity: 0, y: 50, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          whileHover={{ scale: 1.05, y: -4 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setChatOpen(!isChatOpen)}
-          style={{
-            background: isChatOpen ? '#e11d48' : 'linear-gradient(135deg, #2563eb 0%, #06b6d4 50%, #60a5fa 100%)',
-            boxShadow: isChatOpen ? '0 0 35px 6px rgba(225, 29, 72, 0.45)' : '0 0 30px 8px rgba(37, 99, 235, 0.35)',
-            zIndex: 50 
-          }}
-          className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 px-4 sm:px-6 h-14 sm:h-16 rounded-full flex items-center gap-2 sm:gap-3 font-semibold text-xs sm:text-sm text-white group transition-all duration-300 shadow-2xl"
-        >
-          <div className={`transition-transform duration-500 ${isChatOpen ? 'rotate-180' : 'rotate-0'}`}>
-            {isChatOpen ? <X size={18} /> : <Sparkles size={18} className="text-amber-300 animate-pulse" />}
-          </div>
-          <span className="font-extrabold tracking-tight uppercase">
-            {isChatOpen ? 'Close' : 'ASK SARA'}
-          </span>
-        </motion.button>
-
-        <div className="fixed bottom-20 right-4 left-4 sm:left-auto sm:right-6 sm:w-96 z-50 pointer-events-none">
-          <div className="pointer-events-auto">
-            <AIChatPopup isOpen={isChatOpen} onClose={() => setChatOpen(false)} />
-          </div>
+        <div className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-50 flex items-center justify-center">
+          {!isChatOpen && (
+            <motion.div animate={{ scale: [1, 1.28, 1], opacity: [0.35, 0.7, 0.35] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="absolute inset-0 rounded-full bg-cyan-500/25 blur-lg pointer-events-none" />
+          )}
+          <motion.button 
+            whileHover={{ scale: 1.06, y: -2 }} whileTap={{ scale: 0.94 }} onClick={() => setChatOpen(!isChatOpen)}
+            style={{
+              background: isChatOpen ? '#e11d48' : 'linear-gradient(135deg, #1d4ed8 0%, #06b6d4 50%, #3b82f6 100%)',
+              boxShadow: isChatOpen ? '0 0 35px 8px rgba(225, 29, 72, 0.45)' : '0 0 32px 6px rgba(6, 182, 212, 0.35)'
+            }}
+            className="relative px-5 sm:px-7 h-14 sm:h-16 rounded-full flex items-center gap-2.5 sm:gap-3 font-semibold text-xs sm:text-sm text-white transition-all duration-300 shadow-2xl border border-white/20"
+          >
+            {isChatOpen ? <X size={18} /> : <Sparkles size={18} className="text-cyan-200 animate-pulse" />}
+            <span className="font-extrabold tracking-tight uppercase">{isChatOpen ? 'Close' : 'ASK SARA'}</span>
+          </motion.button>
         </div>
 
+        <AIChatPopup isOpen={isChatOpen} onClose={() => setChatOpen(false)} />
       </div>
     </div>
   );
