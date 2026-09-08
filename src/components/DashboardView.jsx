@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Flame, Cpu, Activity, HardDrive, ArrowRight, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { GlassCard } from './GlassCard';
 
 export const DashboardView = () => {
@@ -30,52 +29,39 @@ export const DashboardView = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto space-y-8 md:space-y-12 relative z-10">
+    <div className="p-4 sm:p-6 md:p-10 max-w-7xl mx-auto space-y-8 md:space-y-10 relative z-10">
       
-      {/* ── 1. Hero Cockpit Console (Frames the 3D Neural Canvas) ── */}
-      <div className="relative rounded-3xl p-6 sm:p-8 md:p-10 overflow-hidden border border-white/10 bg-slate-950/30 backdrop-blur-xl shadow-[0_15px_45px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.12)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          
-          {/* Left: Platform Overview */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-semibold text-cyan-300 shadow-[0_0_18px_rgba(6,182,212,0.25)]">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <Flame size={14} className="text-cyan-400" />
-              <span>Quantum Neural Study Core Active</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-              Next-Gen Engineering Study Platform with{' '}
-              <span style={{ 
-                background: 'linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>
-                AI Integration
-              </span>
-            </h1>
-
-            <p className="text-slate-300/80 text-sm md:text-base font-medium leading-relaxed max-w-xl">
-              An interactive, production-ready environment built to host modular curriculum resources, dynamic reference assets, and an edge AI tutor.
-            </p>
+      {/* Centered, Clean Hero Section */}
+      <div className="relative rounded-3xl p-6 sm:p-8 md:p-10 overflow-hidden border border-white/10 bg-slate-950/60 backdrop-blur-xl shadow-2xl">
+        <div className="max-w-3xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-semibold text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <Flame size={14} className="text-cyan-400" />
+            <span>StudyNexus Intelligence Core Active</span>
           </div>
 
-          {/* Right: Transparent Viewport for Background 3D Sphere */}
-          <div className="lg:col-span-5 h-48 sm:h-64 lg:h-72 flex flex-col items-center justify-end pointer-events-none">
-            <div className="text-[10px] font-mono text-cyan-400/70 uppercase tracking-widest flex items-center gap-1.5 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-cyan-500/20 shadow-lg pointer-events-auto">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              Click & Drag to Inspect 3D Core
-            </div>
-          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+            Next-Gen Engineering Study Platform with{' '}
+            <span style={{ 
+              background: 'linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              AI Integration
+            </span>
+          </h1>
 
+          <p className="text-slate-300/80 text-sm md:text-base font-medium leading-relaxed max-w-2xl">
+            A unified academic workspace hosting university curricula, previous years' examination papers, dynamic syllabus reference modules, and an AI derivation tutor.
+          </p>
         </div>
       </div>
 
-      {/* ── 2. Live Telemetry Metrics ── */}
+      {/* System Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:border-cyan-500/30 transition-all">
+        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-cyan-500/30 transition-colors">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center text-blue-400 shadow-sm">
+            <div className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-center text-blue-400">
               <Cpu size={18} />
             </div>
             <div>
@@ -83,15 +69,15 @@ export const DashboardView = () => {
               <p className="text-lg font-black text-slate-100 mt-0.5 font-mono">{metrics.cpu}%</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full shadow-sm">
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>Optimal</span>
           </div>
         </div>
 
-        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:border-purple-500/30 transition-all">
+        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-purple-500/30 transition-colors">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 shadow-sm">
+            <div className="w-10 h-10 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-center text-purple-400">
               <Activity size={18} />
             </div>
             <div>
@@ -104,9 +90,9 @@ export const DashboardView = () => {
           </div>
         </div>
 
-        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:border-amber-500/30 transition-all">
+        <div className="bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-sm hover:border-amber-500/30 transition-colors">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400 shadow-sm">
+            <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-400">
               <HardDrive size={18} />
             </div>
             <div>
@@ -120,7 +106,7 @@ export const DashboardView = () => {
         </div>
       </div>
 
-      {/* ── 3. Academic Matrices (No "S" Letter Clipping) ── */}
+      {/* Academic Matrices */}
       <div className="space-y-6">
         <div>
           <div className="flex items-center gap-2">
@@ -148,21 +134,20 @@ export const DashboardView = () => {
                 className="absolute top-0 left-0 w-1.5 h-full rounded-l-2xl z-20 pointer-events-none" 
               />
               
-              {/* Content Wrapper with Safe Margin so "S" is fully visible */}
-              <div className="pl-3.5 w-full flex flex-col justify-between h-full">
+              <div className="pl-3 w-full flex flex-col justify-between h-full">
                 <div>
                   <div className="flex justify-between items-start mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-slate-800/90 border border-white/10 flex items-center justify-center text-xl shadow-inner group-hover:scale-105 transition-transform">
+                    <div className="w-11 h-11 rounded-xl bg-slate-800/90 border border-white/10 flex items-center justify-center text-xl shadow-inner">
                       {sem.icon}
                     </div>
                     <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-md border ${
-                      sem.tag === 'Active' ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.3)]' :
+                      sem.tag === 'Active' ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' :
                       sem.tag === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                       'bg-slate-800/80 text-slate-400 border-white/10'
                     }`}>{sem.tag}</span>
                   </div>
                   
-                  <h3 className="text-lg font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors tracking-normal">
+                  <h3 className="text-lg font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors">
                     {sem.title}
                   </h3>
                   <p className="text-sm text-slate-400 font-medium mb-4">{sem.subjects}</p>
