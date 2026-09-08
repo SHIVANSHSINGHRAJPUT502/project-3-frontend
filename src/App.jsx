@@ -1,7 +1,7 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell, Clock, CheckCircle2, Users } from 'lucide-react';
+import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Coffee, Menu, X, Sparkles, Search, Bell, Clock, CheckCircle2, Users, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
@@ -13,19 +13,27 @@ import { AIChatPopup } from './components/AIChatPopup.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
 import SupportWidget from './components/SupportWidget.jsx';
 
+const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
+
 export default function App() {
+  const navigate = useNavigate();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isChatOpen, setChatOpen] = useState(false);
   const [requests, setRequests] = useState([]);
   const [activeUsersCount, setActiveUsersCount] = useState(1);
   const location = useLocation();
 
+  // ── Live Database Subject Search States ──
+  const [liveSubjects, setLiveSubjects] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchDropdownOpen, setSearchDropdownOpen] = useState(false);
+
   const user = {
     displayName: "Shivansh Singh",
     photoURL: "https://api.dicebear.com/7.x/bottts/svg?seed=shivansh"
   };
 
-  // ── 1. Developer Console Signature (Visible in F12 / Inspect) ───────────────
+  // ── 1. Developer Console Signature ──
   useEffect(() => {
     console.log(
       `%c StudyNexus %c Designed & Engineered by Shivansh Singh Rajput %c`,
@@ -35,9 +43,21 @@ export default function App() {
     );
   }, []);
 
+  // Fetch only live database subjects
+  const fetchLiveSubjects = async () => {
+    try {
+      const res = await axios.get(`${API}/api/live-subjects`);
+      if (Array.isArray(res.data)) {
+        setLiveSubjects(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load live subjects catalog', err);
+    }
+  };
+
   const fetchRecentRequests = async () => {
     try {
-      const res = await axios.get('https://studynexusbackend.vercel.app/api/admin/requests/recent');
+      const res = await axios.get(`${API}/api/admin/requests/recent`);
       setRequests(res.data);
     } catch (err) {
       console.error('Failed to load sidebar requests', err);
@@ -46,8 +66,8 @@ export default function App() {
 
   const sendHeartbeatAndFetchUsers = async () => {
     try {
-      await axios.post('https://studynexusbackend.vercel.app/api/heartbeat');
-      const res = await axios.get('https://studynexusbackend.vercel.app/api/active-users');
+      await axios.post(`${API}/api/heartbeat`);
+      const res = await axios.get(`${API}/api/active-users`);
       if (res.data && typeof res.data.count === 'number') {
         setActiveUsersCount(res.data.count);
       }
@@ -57,6 +77,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    fetchLiveSubjects();
     fetchRecentRequests();
     sendHeartbeatAndFetchUsers();
 
@@ -73,7 +94,15 @@ export default function App() {
     if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
-  // Render admin panel standalone — no sidebar/header
+  // Filter live subjects in real time
+  const filteredSubjects = searchQuery.trim()
+    ? liveSubjects
+        .filter((item) =>
+          item.name?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .slice(0, 6)
+    : [];
+
   if (location.pathname === '/admin') {
     return (
       <Routes>
@@ -145,7 +174,7 @@ export default function App() {
           </Link>
         </div>
 
-        {/* Vertical Stack of Live Requests */}
+        {/* Live Requests Section */}
         <div className="flex-1 overflow-y-auto px-4 py-2 border-t border-white/5 space-y-2 custom-scrollbar">
           <div className="flex items-center justify-between px-1 mb-2">
             <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
@@ -192,7 +221,7 @@ export default function App() {
           </div>
         </div>
         
-        {/* Sidebar Footer with Live Active Users Count */}
+        {/* Sidebar Footer */}
         <div className="p-4 border-t border-white/5 bg-slate-950/40 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -208,14 +237,66 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 min-h-screen relative pt-16 md:pt-0">
         
         <header className="h-20 border-b border-white/5 bg-slate-950/20 backdrop-blur-md flex items-center px-4 sm:px-6 md:px-10 justify-between relative z-30">
+          {/* Functional Real-Time Search Bar */}
           <div className="flex items-center gap-4 flex-1">
             <div className="max-w-md w-full relative hidden sm:block">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input type="text" placeholder="Query active core subject datasets..." className="w-full bg-slate-900/50 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500/30 transition-colors text-slate-200 placeholder:text-slate-500" />
+              <div className="relative">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search subjects in database..."
+                  value={searchQuery}
+                  onFocus={() => setSearchDropdownOpen(true)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchDropdownOpen(true);
+                  }}
+                  className="w-full bg-slate-900/50 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-cyan-500/40 transition-colors text-slate-200 placeholder:text-slate-500"
+                />
+              </div>
+
+              {/* Dynamic Live Dropdown */}
+              {isSearchDropdownOpen && filteredSubjects.length > 0 && (
+                <div className="absolute top-full mt-2 left-0 right-0 bg-[#0c1322] border border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-xl">
+                  <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                    Live Subjects Found
+                  </div>
+                  {filteredSubjects.map((item) => (
+                    <button
+                      key={`${item.sem}-${item.name}`}
+                      onClick={() => {
+                        navigate(`/subject/${item.sem}/${encodeURIComponent(item.name)}`);
+                        setSearchQuery('');
+                        setSearchDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-800/80 flex items-center justify-between transition group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BookOpen size={14} className="text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400">
+                          {item.name}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        Sem {item.sem}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Click-outside dismisser */}
+              {isSearchDropdownOpen && (
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setSearchDropdownOpen(false)}
+                />
+              )}
             </div>
           </div>
+
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Live Active Badge on Topbar */}
+            {/* Live Active Badge */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -249,7 +330,7 @@ export default function App() {
             </Routes>
           </div>
 
-          {/* ── 2. Clean Engineering Footer Attribution ── */}
+          {/* ── Minimalist Engineering Footer Attribution ── */}
           <footer className="mt-16 pt-6 pb-2 border-t border-white/5 text-center shrink-0">
             <p className="text-[11px] font-mono text-slate-500 tracking-wider">
               ENGINEERED BY{' '}
@@ -262,10 +343,9 @@ export default function App() {
           </footer>
         </main>
 
-        {/* ── LEFT FLOATING WIDGET: Request Notes ── */}
+        {/* Floating Widgets */}
         <SupportWidget onSubmitted={fetchRecentRequests} />
 
-        {/* ── RIGHT FLOATING WIDGET: ASK SARA ── */}
         <motion.button 
           initial={{ opacity: 0, y: 50, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
