@@ -3,15 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Send, Loader2, Mic, Volume2, FileText, ExternalLink, ArrowRight } from 'lucide-react';
-
-const LOADING_PHRASES = [
-  "Bypassing NASA firewalls...",
-  "Overclocking the local dynamic matrix...",
-  "Feeding the server hamsters...",
-  "Re-routing the mainframe through Panipat traffic...",
-  "Downloading more RAM from the cloud...",
-  "Escaping the infinite recursion loop..."
-];
+import { LOADING_PHRASES, playAnyaVoice } from '../utils/voiceAssistant.js';
 
 export const AIChatPopup = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
@@ -67,8 +59,8 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
       if (shouldBeListeningRef.current && !window.speechSynthesis.speaking && !isTyping && !isRequestPendingRef.current) {
         try {
           recognition.start();
-        } catch (e) {
-          console.log("Mic restart cycle handled cleanly.");
+        } catch {
+          // Handled restart
         }
       }
     };
@@ -96,7 +88,6 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
       if (activeText.trim()) {
         setInputValue(activeText);
 
-        // Auto-submit after 1.8 seconds of human silence
         silenceTimerRef.current = setTimeout(() => {
           recognition.stop(); 
           setVoiceStatus('Processing thought...');
@@ -112,55 +103,33 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
       if (recognitionRef.current) recognitionRef.current.stop();
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     };
-  }, [isTyping]); 
+  }, [isTyping]);
 
-  const speakText = (text) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel(); 
-
-    let vocalText = text.replace(/(https?:\/\/[^\s]+)/g, 'Check out the live link on your screen!');
-    let processedText = vocalText.replace(/[*#`_\-]/g, '').trim();
-    if (!processedText.toLowerCase().startsWith('hey') && !processedText.toLowerCase().startsWith('oh')) {
-      processedText = "Alright! " + processedText;
-    }
-    processedText = processedText.replace(/\.(?!\d)/g, '! ');
-
-    const utterance = new SpeechSynthesisUtterance(processedText);
-    const voices = window.speechSynthesis.getVoices();
-    
-    let femaleVoice = voices.find(v => 
-      v.lang.startsWith('en') && 
-      (v.name.includes('Google US English') || v.name.includes('Samantha') || v.name.includes('Zira'))
-    );
-    if (femaleVoice) utterance.voice = femaleVoice;
-    
-    utterance.rate = 1.14;
-    utterance.pitch = 1.25;
-
-    utterance.onstart = () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      setVoiceStatus('Sarah is speaking...');
-    };
-
-    utterance.onend = () => {
-      if (shouldBeListeningRef.current && recognitionRef.current && !isRequestPendingRef.current) {
-        setInputValue('');
-        setVoiceStatus('Sarah finished. Listening for you...');
-        setTimeout(() => {
-          try {
-            if (shouldBeListeningRef.current && !window.speechSynthesis.speaking) {
-              recognitionRef.current.start();
+  const speakSarah = (text) => {
+    playAnyaVoice(
+      text,
+      () => {
+        if (recognitionRef.current) recognitionRef.current.stop();
+        setVoiceStatus('Sarah is speaking...');
+      },
+      () => {
+        if (shouldBeListeningRef.current && recognitionRef.current && !isRequestPendingRef.current) {
+          setInputValue('');
+          setVoiceStatus('Sarah finished. Listening for you...');
+          setTimeout(() => {
+            try {
+              if (shouldBeListeningRef.current && !window.speechSynthesis.speaking) {
+                recognitionRef.current.start();
+              }
+            } catch {
+              // Handled bypass
             }
-          } catch (e) {
-            console.log("Safe reset bypass.");
-          }
-        }, 300); 
-      } else {
-        setVoiceStatus('Voice System Idle');
+          }, 300); 
+        } else {
+          setVoiceStatus('Voice System Idle');
+        }
       }
-    };
-
-    window.speechSynthesis.speak(utterance);
+    );
   };
 
   const toggleListening = () => {
@@ -178,7 +147,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
       setInputValue('');
       try {
         recognitionRef.current.start();
-      } catch (e) {
+      } catch {
         recognitionRef.current.stop();
       }
     }
@@ -202,9 +171,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     try {
       const response = await fetch('https://studynexusbackend.vercel.app/api/ai/chat', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userPayload.text })
       });
 
@@ -219,7 +186,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
             semester: data.semester || null
           }
         ]);
-        speakText(data.reply);
+        speakSarah(data.reply);
       } else if (response.status === 429) {
         setMessages((prev) => [...prev, { sender: 'ai', text: "⚠️ Server limit reached. Let's take a 30-second breather!" }]);
         window.speechSynthesis.cancel();
@@ -227,7 +194,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
         setMessages((prev) => [...prev, { sender: 'ai', text: "❌ Connection handshake dropped." }]);
         if (shouldBeListeningRef.current && recognitionRef.current) recognitionRef.current.start();
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [...prev, { sender: 'ai', text: "⚡ Network link down." }]);
       if (shouldBeListeningRef.current && recognitionRef.current) recognitionRef.current.start();
     } finally {
@@ -280,13 +247,12 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                 <div className={`p-3 rounded-xl max-w-[85%] leading-relaxed group relative ${msg.sender === 'user' ? 'bg-blue-600 text-white font-medium rounded-tr-none' : 'bg-slate-800/60 border border-white/5 text-slate-300 rounded-tl-none whitespace-pre-wrap'}`}>
                   {msg.text}
                   {msg.sender === 'ai' && (
-                    <button onClick={() => speakText(msg.text)} className="absolute -bottom-5 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-cyan-400 flex items-center gap-1 text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-white/10">
+                    <button onClick={() => speakSarah(msg.text)} className="absolute -bottom-5 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-cyan-400 flex items-center gap-1 text-[10px] bg-slate-950 px-1.5 py-0.5 rounded border border-white/10">
                       <Volume2 size={10} /> Replay Voice
                     </button>
                   )}
                 </div>
 
-                {/* ── Direct PDF Resource Link Cards ── */}
                 {msg.resources && msg.resources.length > 0 && (
                   <div className="mt-2.5 w-full max-w-[85%] space-y-1.5">
                     {msg.resources.map((res, rIdx) => (
@@ -318,7 +284,6 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                   </div>
                 )}
 
-                {/* ── Shortcut button to Semester View ── */}
                 {msg.semester && (
                   <button
                     onClick={() => handleNavigateSemester(msg.semester)}
@@ -342,7 +307,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
             <div ref={scrollTrackerRef} />
           </div>
 
-          {/* Input Bar */}
+          {/* Input Controls */}
           <div className="p-3 bg-slate-950/50 border-t border-white/10 flex gap-3 items-center">
             <div className="relative flex items-center justify-center">
               <AnimatePresence>
