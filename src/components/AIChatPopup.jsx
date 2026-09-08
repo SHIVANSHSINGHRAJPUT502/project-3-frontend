@@ -34,8 +34,17 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     }
   }, [messages, isTyping]);
 
+  // When full-screen modal opens, cancel speech recognition in chat to avoid mic cross-talk
+  useEffect(() => {
+    if (isExamModalOpen) {
+      cancelSpeech();
+    }
+  }, [isExamModalOpen]);
+
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleDispatchMessage();
+    if (e.key === 'Enter' && !isExamModalOpen) {
+      handleDispatchMessage();
+    }
   };
 
   const handleClose = () => {
@@ -43,10 +52,15 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  const handleCloseModal = () => {
+    setIsExamModalOpen(false);
+    setActiveExamDoc(null);
+  };
+
   return (
     <>
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !isExamModalOpen && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9, y: 40 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -216,12 +230,14 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
         )}
       </AnimatePresence>
 
-      {/* Full-Screen Workspace */}
+      {/* Full-Screen Workspace (Mounted at root level so it stays active) */}
       <ExamPaperModal
         isOpen={isExamModalOpen}
-        onClose={() => setIsExamModalOpen(false)}
+        onClose={handleCloseModal}
         paperData={activeExamDoc}
       />
     </>
   );
 };
+
+export default AIChatPopup;
