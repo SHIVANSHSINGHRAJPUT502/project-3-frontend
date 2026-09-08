@@ -1,34 +1,32 @@
 // src/components/AIChatPopup.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Send, Loader2, Mic, Volume2, FileText, ExternalLink, ArrowRight } from 'lucide-react';
-import { LOADING_PHRASES, playAnyaVoice } from '../utils/voiceAssistant.js';
+import { useVoiceChat } from '../hooks/useVoiceChat.js';
 import { ExamPaperModal } from './ExamPaperModal.jsx';
 
 export const AIChatPopup = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState([
-    {
-      sender: 'ai',
-      text: "Hey! Continuous voice mode is primed. Talk to me completely hands-free! Just speak, pause, and I'll answer—the mic will stay live until you turn it off! 🚀"
-    }
-  ]);
-  const [isTyping, setIsTyping] = useState(false);
-  const [loadingText, setLoadingText] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState('Voice System Idle');
-
-  // ── Auto-Launch Full-Screen Exam Modal States ──
-  const [activeExamDoc, setActiveExamDoc] = useState(null);
-  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
-  
   const scrollTrackerRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const silenceTimerRef = useRef(null);      
-  const shouldBeListeningRef = useRef(false);  
-  const isRequestPendingRef = useRef(false); 
+
+  const {
+    inputValue,
+    setInputValue,
+    messages,
+    isTyping,
+    loadingText,
+    voiceStatus,
+    shouldBeListening,
+    activeExamDoc,
+    setActiveExamDoc,
+    isExamModalOpen,
+    setIsExamModalOpen,
+    speakSarah,
+    toggleListening,
+    handleDispatchMessage,
+    cancelSpeech
+  } = useVoiceChat();
 
   useEffect(() => {
     if (scrollTrackerRef.current) {
@@ -36,204 +34,12 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
     }
   }, [messages, isTyping]);
 
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setVoiceStatus('Speech API Not Supported');
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;       
-    recognition.interimResults = true;    
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      setVoiceStatus('Sarah is listening... Speak freely!');
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Mic Error:', event.error);
-      if (event.error === 'no-speech') return; 
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      if (shouldBeListeningRef.current && !window.speechSynthesis.speaking && !isTyping && !isRequestPendingRef.current) {
-        try {
-          recognition.start();
-        } catch {
-          // Handled restart
-        }
-      }
-    };
-
-    recognition.onresult = (event) => {
-      if (window.speechSynthesis.speaking || isTyping || isRequestPendingRef.current) {
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        return; 
-      }
-
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-
-      let finalTranscript = '';
-      let interimTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
-      }
-
-      const activeText = finalTranscript || interimTranscript;
-      if (activeText.trim()) {
-        setInputValue(activeText);
-
-        silenceTimerRef.current = setTimeout(() => {
-          recognition.stop(); 
-          setVoiceStatus('Processing thought...');
-          handleDispatchMessage(activeText);
-        }, 1800); 
-      }
-    };
-
-    recognitionRef.current = recognition;
-    setVoiceStatus('Continuous Engine Ready');
-
-    return () => {
-      if (recognitionRef.current) recognitionRef.current.stop();
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    };
-  }, [isTyping]);
-
-  const speakSarah = (text) => {
-    playAnyaVoice(
-      text,
-      () => {
-        if (recognitionRef.current) recognitionRef.current.stop();
-        setVoiceStatus('Sarah is speaking...');
-      },
-      () => {
-        if (shouldBeListeningRef.current && recognitionRef.current && !isRequestPendingRef.current) {
-          setInputValue('');
-          setVoiceStatus('Sarah finished. Listening for you...');
-          setTimeout(() => {
-            try {
-              if (shouldBeListeningRef.current && !window.speechSynthesis.speaking) {
-                recognitionRef.current.start();
-              }
-            } catch {
-              // Handled bypass
-            }
-          }, 300); 
-        } else {
-          setVoiceStatus('Voice System Idle');
-        }
-      }
-    );
-  };
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) return;
-    
-    if (isListening || shouldBeListeningRef.current) {
-      shouldBeListeningRef.current = false;
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      window.speechSynthesis.cancel();
-      recognitionRef.current.stop();
-      setVoiceStatus('Voice Mode Disabled');
-    } else {
-      shouldBeListeningRef.current = true;
-      window.speechSynthesis.cancel();
-      setInputValue('');
-      try {
-        recognitionRef.current.start();
-      } catch {
-        recognitionRef.current.stop();
-      }
-    }
-  };
-
-  const handleDispatchMessage = async (textToSend = inputValue) => {
-    const cleanText = textToSend.trim();
-    if (!cleanText) return;
-
-    if (isRequestPendingRef.current) return;
-    isRequestPendingRef.current = true;
-
-    const userPayload = { sender: 'user', text: cleanText };
-    setMessages((prev) => [...prev, userPayload]);
-    setInputValue('');
-    
-    const randomPhrase = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-    setLoadingText(randomPhrase);
-    setIsTyping(true);
-
-    try {
-      const response = await fetch('https://studynexusbackend.vercel.app/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userPayload.text })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMessages((prev) => [
-          ...prev, 
-          { 
-            sender: 'ai', 
-            text: data.reply,
-            resources: data.resources || [],
-            semester: data.semester || null
-          }
-        ]);
-        speakSarah(data.reply);
-
-        // ── AUTOMATIC FULL-SCREEN LAUNCH ──────────────────────────────
-        // If the query asks for papers, PYQs, exams, or problem-solving, and a PDF document matched:
-        const wantsExamScreen = /pyq|paper|question paper|exam|solve|notes|syllabus/i.test(userPayload.text);
-        if (wantsExamScreen && data.resources && data.resources.length > 0) {
-          const topDoc = data.resources[0];
-          setTimeout(() => {
-            setActiveExamDoc({
-              id: topDoc.id || topDoc._id,
-              title: topDoc.title,
-              subject: topDoc.subject,
-              semester: topDoc.semester,
-              url: topDoc.url || topDoc.s3Url,
-              type: topDoc.type || 'PYQ'
-            });
-            setIsExamModalOpen(true);
-          }, 500);
-        }
-      } else if (response.status === 429) {
-        setMessages((prev) => [...prev, { sender: 'ai', text: "⚠️ Server limit reached. Let's take a 30-second breather!" }]);
-        window.speechSynthesis.cancel();
-      } else {
-        setMessages((prev) => [...prev, { sender: 'ai', text: "❌ Connection handshake dropped." }]);
-        if (shouldBeListeningRef.current && recognitionRef.current) recognitionRef.current.start();
-      }
-    } catch {
-      setMessages((prev) => [...prev, { sender: 'ai', text: "⚡ Network link down." }]);
-      if (shouldBeListeningRef.current && recognitionRef.current) recognitionRef.current.start();
-    } finally {
-      setIsTyping(false);
-      setTimeout(() => {
-        isRequestPendingRef.current = false;
-      }, 1500);
-    }
-  };
-
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') handleDispatchMessage();
   };
 
-  const handleNavigateSemester = (sem) => {
-    navigate(`/semester/${sem}`);
+  const handleClose = () => {
+    cancelSpeech();
     onClose();
   };
 
@@ -253,13 +59,13 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                 <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
                 <div>
                   <h3 className="font-semibold text-sm text-white">ASK SARAH</h3>
-                  <span className={`text-[10px] flex items-center gap-1 font-mono ${shouldBeListeningRef.current ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListeningRef.current ? 'bg-rose-500 animate-ping' : 'bg-rose-500'}`} /> 
+                  <span className={`text-[10px] flex items-center gap-1 font-mono ${shouldBeListening ? 'text-rose-400 font-bold' : 'text-cyan-400'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${shouldBeListening ? 'bg-rose-500 animate-ping' : 'bg-rose-500'}`} /> 
                     {voiceStatus}
                   </span>
                 </div>
               </div>
-              <button onClick={() => { shouldBeListeningRef.current = false; window.speechSynthesis.cancel(); onClose(); }} className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white">
+              <button onClick={handleClose} className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white">
                 <X size={18} />
               </button>
             </div>
@@ -277,14 +83,11 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                     )}
                   </div>
 
-                  {/* PDF Resource Links */}
+                  {/* Resource Cards */}
                   {msg.resources && msg.resources.length > 0 && (
                     <div className="mt-2.5 w-full max-w-[85%] space-y-1.5">
                       {msg.resources.map((res, rIdx) => (
-                        <div 
-                          key={rIdx}
-                          className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-2 shadow-md"
-                        >
+                        <div key={rIdx} className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all flex items-center justify-between gap-2 shadow-md">
                           <div className="truncate flex-1">
                             <div className="flex items-center gap-1.5">
                               <FileText size={13} className="text-cyan-400 shrink-0" />
@@ -329,7 +132,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
 
                   {msg.semester && (
                     <button
-                      onClick={() => handleNavigateSemester(msg.semester)}
+                      onClick={() => { navigate(`/semester/${msg.semester}`); onClose(); }}
                       className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-medium transition-all"
                     >
                       <span>View all Semester {msg.semester} Subjects</span>
@@ -354,7 +157,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
             <div className="p-3 bg-slate-950/50 border-t border-white/10 flex gap-3 items-center">
               <div className="relative flex items-center justify-center">
                 <AnimatePresence>
-                  {shouldBeListeningRef.current && (
+                  {shouldBeListening && (
                     <>
                       <motion.div
                         initial={{ scale: 0.8, opacity: 0.5 }}
@@ -377,13 +180,13 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                 <button 
                   onClick={toggleListening}
                   className={`relative z-10 w-10 h-10 rounded-xl border flex items-center justify-center transition-all duration-300 transform active:scale-90 ${
-                    shouldBeListeningRef.current 
+                    shouldBeListening 
                       ? 'bg-rose-500 text-white border-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]' 
                       : 'bg-slate-900 border-white/10 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/40 shadow-inner'
                   }`}
-                  title={shouldBeListeningRef.current ? "Click to stop continuous mode" : "Start continuous voice chat"}
+                  title={shouldBeListening ? "Click to stop continuous mode" : "Start continuous voice chat"}
                 >
-                  {shouldBeListeningRef.current ? (
+                  {shouldBeListening ? (
                     <div className="flex items-end justify-center gap-[2.5px] h-4 w-5">
                       <motion.span animate={{ height: ["4px", "16px", "4px"] }} transition={{ repeat: Infinity, duration: 0.6, ease: "easeInOut" }} className="w-[3px] bg-white rounded-full" />
                       <motion.span animate={{ height: ["4px", "12px", "4px"] }} transition={{ repeat: Infinity, duration: 0.45, ease: "easeInOut", delay: 0.15 }} className="w-[3px] bg-white rounded-full" />
@@ -401,7 +204,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder={shouldBeListeningRef.current ? "Hands-free active... speak freely" : "Type or click mic to talk..."} 
+                placeholder={shouldBeListening ? "Hands-free active... speak freely" : "Type or click mic to talk..."} 
                 className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none text-white placeholder:text-slate-500 transition-colors focus:border-white/20"
               />
               
@@ -413,7 +216,7 @@ export const AIChatPopup = ({ isOpen, onClose }) => {
         )}
       </AnimatePresence>
 
-      {/* ── Mounted Full-Screen Exam Paper Modal ── */}
+      {/* Full-Screen Workspace */}
       <ExamPaperModal
         isOpen={isExamModalOpen}
         onClose={() => setIsExamModalOpen(false)}
