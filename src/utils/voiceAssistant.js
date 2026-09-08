@@ -25,34 +25,57 @@ export const sanitizeVoiceText = (text) => {
   return cleaned.replace(/\.(?!\d)/g, '! ');
 };
 
+// Ensure voices are actually loaded from the browser before selection
+const getAvailableVoices = () => {
+  return new Promise((resolve) => {
+    let voices = window.speechSynthesis.getVoices();
+    if (voices && voices.length > 0) {
+      resolve(voices);
+      return;
+    }
+    window.speechSynthesis.onvoiceschanged = () => {
+      voices = window.speechSynthesis.getVoices();
+      resolve(voices);
+    };
+    // Safety timeout fallback
+    setTimeout(() => {
+      resolve(window.speechSynthesis.getVoices() || []);
+    }, 300);
+  });
+};
+
 // Play audio using an energetic, youthful anime acoustic profile
-export const playAnyaVoice = (text, onStart, onEnd) => {
+export const playAnyaVoice = async (text, onStart, onEnd) => {
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
   window.speechSynthesis.cancel();
 
+  const voices = await getAvailableVoices();
   const processed = sanitizeVoiceText(text);
   const utterance = new SpeechSynthesisUtterance(processed);
-  const voices = window.speechSynthesis.getVoices();
 
-  // Pick clear, natural female voices available across modern browsers
-  const targetVoice = voices.find(v => 
-    v.lang.startsWith('en') && 
-    (v.name.includes('Google US English') || 
-     v.name.includes('Victoria') || 
-     v.name.includes('Samantha') || 
-     v.name.includes('Natural') || 
-     v.name.includes('Jenny') || 
-     v.name.includes('Ana'))
-  ) || voices.find(v => v.lang.startsWith('en') && (v.name.includes('female') || v.name.includes('Female')));
+  // Filter for English voices first
+  const englishVoices = voices.filter(v => v.lang && v.lang.startsWith('en'));
+
+  // Priority list: modern high-clarity female voices
+  const targetVoice = 
+    englishVoices.find(v => v.name.includes('Google US English') || v.name.includes('Google UK English Female')) ||
+    englishVoices.find(v => v.name.includes('Zira') || v.name.includes('Jenny') || v.name.includes('Aria')) ||
+    englishVoices.find(v => v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen')) ||
+    englishVoices.find(v => /female/i.test(v.name)) ||
+    // Strict safeguard: reject known desktop male voice identifiers
+    englishVoices.find(v => !/(david|mark|george|male|guy)/i.test(v.name)) ||
+    voices[0];
 
   if (targetVoice) {
     utterance.voice = targetVoice;
   }
 
-  // Anya voice settings: high pitch and upbeat pace
-  utterance.pitch = 1.48;
-  utterance.rate = 1.08;
+  // Anya Acoustic Profile:
+  // 1.55 delivers the high, expressive anime pitch
+  utterance.pitch = 1.55;
+  // 1.10 keeps cadence nimble and energetic
+  utterance.rate = 1.10;
   utterance.volume = 1;
 
   if (onStart) utterance.onstart = onStart;
