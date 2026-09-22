@@ -6,13 +6,13 @@ import { BookOpen, Search, X, CheckCircle2, Plus, Loader2, FileText } from 'luci
 const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 
 const DEFAULT_SEMESTER_SUBJECTS = {
-  1: ["Engineering Mathematics-I", "Engineering Physics", "Basic Electrical Engineering", "Engineering Graphics", "Communication Skills"],
-  2: ["Engineering Mathematics-II", "Engineering Chemistry", "Programming in C", "Basic Electronics", "Environmental Studies"],
-  3: ["Data Structures & Algorithms", "Digital Electronics", "Object Oriented Programming", "Discrete Mathematics", "Economics for Engineers"],
-  4: ["Operating Systems", "Database Management Systems", "Computer Organization & Architecture", "Theory of Computation", "Mathematics-III"],
-  5: ["Computer Networks", "Design & Analysis of Algorithms", "Software Engineering", "Microprocessors & Microcontrollers", "Cyber Security"],
-  6: ["Compiler Design", "Artificial Intelligence", "Web Technologies", "Cloud Computing", "Data Science Fundamentals"],
-  7: ["Machine Learning", "Information Security", "Distributed Systems", "Internet of Things (IoT)", "Elective-I"],
+  1: ["MATHEMATICS-I", "SEMICONDUCTOR PHYSICS", "BASIC OF ELECTRICAL ENGINERING", "ENGLISH LANGUAGE SKILL"],
+  2: ["MATHEMATICS", "CHEMISTRY", "UHV", "PROGRAMMING FOR PROBLEM SOLVING "],
+  3: ["DSA", "MATHEMATICS-III", "DIGITAL SYSTEM   DESIGN", "COI", "COA","ENGINNERING ECONOMICS"],
+  4: ["OPERATING SYSTEM", "DISCRETE MATHEMATICS", "WEB AND INTERNET TECHNOLOGIES", "EVIROMENTAL SCIENCE", "ORGANIZATIONAL BEHAVIOUR"],
+  5: ["COMPUTER NETWORK", "FORMAL AUTOAMATA AND TOC", "SOFTWARE ENGINNERING", "INTRODUCTION TO DATA SCIENCE", "OOPS","DATABASE MANAGEMENT SYSTEMS"],
+  6: ["HUMAN VALUES, ETHICS And IPR", "COMPILER DESIGN", "ADVANCED JAVA", "ADVANCED COMPUTER NETWORK", "INDUSTRIAL SAFETY"],
+  7: ["MACHINE LEARNING", "BIOLOGY", "Entrepreneurship", "GREEN COMPUTING", "MULTIMEDIA"],
   8: ["Deep Learning", "Block Chain Technology", "Major Project / Internship", "Elective-II"]
 };
 
