@@ -4,7 +4,7 @@ import { BookOpen, AlertTriangle, FileText, GraduationCap, ScrollText, Sparkles,
 import axios from 'axios';
 import { GlassCard } from './GlassCard';
 import AiStudyModal from './AiStudyModal';
-import { downloadPdfWithProperName } from '../utils/pdfHelper';
+import { downloadPdfWithProperName, viewPdfInBrowser } from '../utils/pdfHelper';
 
 const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 
@@ -20,6 +20,7 @@ export const SubjectView = () => {
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [viewingId, setViewingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [selectedAiPdf, setSelectedAiPdf] = useState(null);
 
@@ -125,6 +126,7 @@ export const SubjectView = () => {
         {!loading && !error && pdfs.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pdfs.map((pdf) => {
+              const isViewing = viewingId === pdf._id;
               const isDownloading = downloadingId === pdf._id;
 
               return (
@@ -158,15 +160,25 @@ export const SubjectView = () => {
                   </div>
 
                   <div className="pl-2 pt-4 mt-3 border-t border-white/5 flex items-center gap-2">
-                    <a
-                      href={pdf.s3Url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-2 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
+                    <button
+                      type="button"
+                      disabled={isViewing || !pdf.s3Url}
+                      onClick={() =>
+                        viewPdfInBrowser(
+                          pdf.s3Url,
+                          () => setViewingId(pdf._id),
+                          () => setViewingId(null)
+                        )
+                      }
+                      className="flex-1 py-2 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                     >
-                      <BookOpen size={13} className="text-slate-400" />
+                      {isViewing ? (
+                        <Loader2 size={13} className="animate-spin text-cyan-400" />
+                      ) : (
+                        <BookOpen size={13} className="text-slate-400" />
+                      )}
                       <span>View</span>
-                    </a>
+                    </button>
 
                     {pdf.s3Url && (
                       <button

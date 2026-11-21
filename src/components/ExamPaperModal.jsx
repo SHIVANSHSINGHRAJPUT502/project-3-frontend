@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { playAnyaVoice } from '../utils/voiceAssistant.js';
-import { downloadPdfWithProperName } from '../utils/pdfHelper.js';
+import { downloadPdfWithProperName, viewPdfInBrowser } from '../utils/pdfHelper.js';
 
 const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
 
@@ -22,7 +22,10 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
   const [prompt, setPrompt] = useState('');
   const [solution, setSolution] = useState('');
   const [isSolving, setIsSolving] = useState(false);
+  const [isViewing, setIsViewing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [inlineBlobUrl, setInlineBlobUrl] = useState(null);
+  const [isLoadingInline, setIsLoadingInline] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
@@ -32,10 +35,55 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
     }
   }, [paperData, documentsList]);
 
-  if (!isOpen || (!paperData && availableDocs.length === 0)) return null;
-
   const currentDoc = selectedDoc || paperData || {};
   const pdfTargetUrl = currentDoc.url || currentDoc.s3Url;
+
+  // Convert raw Cloudinary stream into an inline application/pdf Blob so Edge/Chrome renders it cleanly
+  useEffect(() => {
+    if (!isOpen || !pdfTargetUrl) {
+      setInlineBlobUrl(null);
+      return;
+    }
+
+    let isCancelled = false;
+    let createdUrl = null;
+
+    const loadInlinePdf = async () => {
+      setIsLoadingInline(true);
+      try {
+        const res = await fetch(pdfTargetUrl);
+        if (!res.ok) throw new Error('Failed to load PDF stream');
+        const buffer = await res.arrayBuffer();
+        const blob = new Blob([buffer], { type: 'application/pdf' });
+        createdUrl = window.URL.createObjectURL(blob);
+        if (!isCancelled) setInlineBlobUrl(createdUrl);
+      } catch (err) {
+        console.error('Inline PDF blob error:', err);
+        if (!isCancelled) setInlineBlobUrl(pdfTargetUrl);
+      } finally {
+        if (!isCancelled) setIsLoadingInline(false);
+      }
+    };
+
+    loadInlinePdf();
+
+    return () => {
+      isCancelled = true;
+      if (createdUrl && createdUrl.startsWith('blob:')) {
+        window.URL.revokeObjectURL(createdUrl);
+      }
+    };
+  }, [isOpen, pdfTargetUrl]);
+
+  if (!isOpen || (!paperData && availableDocs.length === 0)) return null;
+
+  const handleView = () => {
+    viewPdfInBrowser(
+      pdfTargetUrl,
+      () => setIsViewing(true),
+      () => setIsViewing(false)
+    );
+  };
 
   const handleDownload = () => {
     downloadPdfWithProperName(
@@ -226,16 +274,16 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {pdfTargetUrl && (
                 <>
-                  <a
-                    href={pdfTargetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    disabled={isViewing}
+                    onClick={handleView}
                     title="Open PDF in new tab"
-                    className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 text-xs font-semibold transition"
+                    className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 text-xs font-semibold transition disabled:opacity-50"
                   >
-                    <ExternalLink size={13} />
+                    {isViewing ? <Loader2 size={13} className="animate-spin" /> : <ExternalLink size={13} />}
                     <span>View</span>
-                  </a>
+                  </button>
                   <button
                     type="button"
                     disabled={isDownloading}
@@ -298,56 +346,62 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                   <span className="truncate">DOCUMENT WORKSPACE • {currentDoc.title}</span>
                 </span>
                 {pdfTargetUrl && (
-                  <a
-                    href={pdfTargetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={handleView}
                     className="text-[10px] text-cyan-400 hover:underline shrink-0 ml-2"
                   >
                     Open Full PDF ↗
-                  </a>
+                  </button>
                 )}
               </div>
 
               <div className="flex-1 w-full h-full bg-slate-900/20 relative">
                 {pdfTargetUrl ? (
-                  <object
-                    data={`${pdfTargetUrl}#toolbar=1&navpanes=0`}
-                    type="application/pdf"
-                    className="w-full h-full"
-                  >
-                    <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-4">
-                      <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                        <FileText size={36} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-white">{currentDoc.title}</h4>
-                        <p className="text-xs text-slate-400 max-w-xs mt-1">
-                          Tap below to read this PDF in your phone&apos;s native PDF viewer or save a clean .pdf copy.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-3">
-                        <a
-                          href={pdfTargetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs flex items-center gap-1.5"
-                        >
-                          <ExternalLink size={14} />
-                          View PDF
-                        </a>
-                        <button
-                          type="button"
-                          disabled={isDownloading}
-                          onClick={handleDownload}
-                          className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                          {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                          Download .PDF
-                        </button>
-                      </div>
+                  isLoadingInline ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-cyan-400 font-mono text-xs">
+                      <Loader2 size={24} className="animate-spin" />
+                      <span>Rendering PDF document...</span>
                     </div>
-                  </object>
+                  ) : (
+                    <object
+                      data={`${inlineBlobUrl || pdfTargetUrl}#toolbar=1&navpanes=0`}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-4">
+                        <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                          <FileText size={36} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-white">{currentDoc.title}</h4>
+                          <p className="text-xs text-slate-400 max-w-xs mt-1">
+                            Tap below to read this PDF in your browser&apos;s PDF viewer or save a clean .pdf copy.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            disabled={isViewing}
+                            onClick={handleView}
+                            className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isViewing ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
+                            View PDF
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isDownloading}
+                            onClick={handleDownload}
+                            className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                            Download .PDF
+                          </button>
+                        </div>
+                      </div>
+                    </object>
+                  )
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3 px-6 text-center">
                     <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
