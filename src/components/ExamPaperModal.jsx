@@ -4,28 +4,40 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, FileText, Sparkles, Send, Loader2, Download, BookOpen, 
-  Layers, Terminal, Mic, Volume2, ChevronRight, CheckCircle2 
+  Layers, Terminal, Mic, CheckCircle2, ExternalLink
 } from 'lucide-react';
 import axios from 'axios';
 import { playAnyaVoice } from '../utils/voiceAssistant.js';
 
 const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
 
+function getCleanPdfLinks(rawUrl, title) {
+  if (!rawUrl) return { viewUrl: null, downloadUrl: null, fileName: 'StudyNexus-Document.pdf' };
+
+  const safeBase = (title || 'StudyNexus-Document').replace(/[^a-zA-Z0-9-_]/g, '_');
+  const fileName = safeBase.toLowerCase().endsWith('.pdf') ? safeBase : `${safeBase}.pdf`;
+
+  let downloadUrl = rawUrl;
+  if (rawUrl.includes('res.cloudinary.com') && rawUrl.includes('/upload/')) {
+    downloadUrl = rawUrl.replace('/upload/', `/upload/fl_attachment:${safeBase}/`);
+  }
+
+  return { viewUrl: rawUrl, downloadUrl, fileName };
+}
+
 export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] }) => {
-  // Consolidate document list (either passed array or single paperData)
   const availableDocs = documentsList && documentsList.length > 0 
     ? documentsList 
     : (paperData ? [paperData] : []);
 
   const [selectedDoc, setSelectedDoc] = useState(availableDocs[0] || null);
-  const [activeTab, setActiveTab] = useState('paper'); // 'paper' or 'solver'
+  const [activeTab, setActiveTab] = useState('paper');
   const [prompt, setPrompt] = useState('');
   const [solution, setSolution] = useState('');
   const [isSolving, setIsSolving] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
-  // Keep selectedDoc synced when new documents arrive
   useEffect(() => {
     if (availableDocs.length > 0) {
       setSelectedDoc(availableDocs[0]);
@@ -36,9 +48,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
 
   const currentDoc = selectedDoc || paperData || {};
   const pdfTargetUrl = currentDoc.url || currentDoc.s3Url;
-  const embedViewerUrl = pdfTargetUrl 
-    ? `https://docs.google.com/gview?url=${encodeURIComponent(pdfTargetUrl)}&embedded=true`
-    : null;
+  const { viewUrl, downloadUrl, fileName } = getCleanPdfLinks(pdfTargetUrl, currentDoc.title);
 
   const handleSolveQuestion = async (customPrompt) => {
     const query = customPrompt || prompt;
@@ -67,7 +77,6 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
     }
   };
 
-  // Hands-free voice trigger inside the full screen
   const toggleVoice = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -184,10 +193,9 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
           exit={{ opacity: 0, scale: 0.96, y: 15 }}
           className="bg-[#0b1120] border border-white/10 rounded-2xl w-full max-w-7xl h-[94vh] flex flex-col overflow-hidden shadow-2xl relative z-[10000]"
         >
-          {/* Top Bar Header */}
-          <div className="h-16 px-4 sm:px-6 border-b border-white/10 bg-slate-950/80 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0">
+          <div className="h-16 px-3 sm:px-6 border-b border-white/10 bg-slate-950/80 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shrink-0 hidden sm:flex">
                 <FileText size={18} />
               </div>
               <div className="min-w-0">
@@ -195,16 +203,15 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                   {currentDoc.title || 'Exam Document Workspace'}
                 </h2>
                 <p className="text-[10px] font-mono text-slate-400 truncate">
-                  {currentDoc.subject} • Semester {currentDoc.semester} • {currentDoc.type || 'Document'}
+                  {currentDoc.subject} • Sem {currentDoc.semester} • {currentDoc.type || 'Document'}
                 </p>
               </div>
             </div>
 
-            {/* Mobile Tab Switcher */}
-            <div className="flex md:hidden items-center bg-slate-900 p-1 rounded-xl border border-white/10 mx-2 shrink-0">
+            <div className="flex md:hidden items-center bg-slate-900 p-1 rounded-xl border border-white/10 shrink-0">
               <button
                 onClick={() => setActiveTab('paper')}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition ${
+                className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition ${
                   activeTab === 'paper' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'
                 }`}
               >
@@ -212,7 +219,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
               </button>
               <button
                 onClick={() => setActiveTab('solver')}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition ${
+                className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition ${
                   activeTab === 'solver' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400'
                 }`}
               >
@@ -220,14 +227,26 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
               </button>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              {pdfTargetUrl && (
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {viewUrl && (
                 <a
-                  href={pdfTargetUrl}
+                  href={viewUrl}
                   target="_blank"
-                  rel="noreferrer"
-                  download
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 text-xs font-semibold transition"
+                  rel="noopener noreferrer"
+                  title="Open PDF in new tab"
+                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 text-xs font-semibold transition"
+                >
+                  <ExternalLink size={13} />
+                  <span>View</span>
+                </a>
+              )}
+              {downloadUrl && (
+                <a
+                  href={downloadUrl}
+                  download={fileName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition"
                 >
                   <Download size={13} />
                   <span>Download</span>
@@ -242,7 +261,6 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
             </div>
           </div>
 
-          {/* Document Drawer: List of available PDFs/PYQs for this subject */}
           {availableDocs.length > 1 && (
             <div className="bg-slate-950/90 border-b border-white/5 px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
@@ -273,30 +291,69 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
             </div>
           )}
 
-          {/* Dual-Pane Layout */}
           <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-            
-            {/* Left Column: PDF Stream or Dynamic Workspace */}
             <div
               className={`flex-1 h-full bg-slate-950 border-r border-white/5 flex flex-col ${
                 activeTab === 'paper' ? 'flex' : 'hidden md:flex'
               }`}
             >
               <div className="p-2 bg-slate-900/40 border-b border-white/5 flex items-center justify-between text-[11px] text-slate-400 font-mono px-4">
-                <span className="flex items-center gap-1.5">
-                  <Layers size={13} className="text-cyan-400" />
-                  DOCUMENT WORKSPACE • {currentDoc.title}
+                <span className="flex items-center gap-1.5 truncate">
+                  <Layers size={13} className="text-cyan-400 shrink-0" />
+                  <span className="truncate">DOCUMENT WORKSPACE • {currentDoc.title}</span>
                 </span>
-                <span className="text-[10px] text-emerald-400">Live Stream</span>
+                {viewUrl && (
+                  <a
+                    href={viewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-cyan-400 hover:underline shrink-0 ml-2"
+                  >
+                    Open Full PDF ↗
+                  </a>
+                )}
               </div>
 
               <div className="flex-1 w-full h-full bg-slate-900/20 relative">
-                {embedViewerUrl ? (
-                  <iframe
-                    src={embedViewerUrl}
-                    title="Question Paper Preview"
-                    className="w-full h-full border-0"
-                  />
+                {viewUrl ? (
+                  <object
+                    data={`${viewUrl}#toolbar=1&navpanes=0`}
+                    type="application/pdf"
+                    className="w-full h-full"
+                  >
+                    <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-4">
+                      <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                        <FileText size={36} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-white">{currentDoc.title}</h4>
+                        <p className="text-xs text-slate-400 max-w-xs mt-1">
+                          Tap below to read this PDF in your phone&apos;s native PDF viewer or save a clean .pdf copy.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        <a
+                          href={viewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs flex items-center gap-1.5"
+                        >
+                          <ExternalLink size={14} />
+                          View PDF
+                        </a>
+                        <a
+                          href={downloadUrl}
+                          download={fileName}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-emerald-300 font-semibold text-xs flex items-center gap-1.5"
+                        >
+                          <Download size={14} />
+                          Download .PDF
+                        </a>
+                      </div>
+                    </div>
+                  </object>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3 px-6 text-center">
                     <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
@@ -319,7 +376,6 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
               </div>
             </div>
 
-            {/* Right Column: AI Solver & Reader Engine */}
             <div
               className={`w-full md:w-[480px] h-full bg-[#0c1427] flex flex-col shrink-0 ${
                 activeTab === 'solver' ? 'flex' : 'hidden md:flex'
@@ -333,7 +389,6 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                 <span className="text-[10px] font-mono text-slate-500">Gemini Flash Live</span>
               </div>
 
-              {/* Solution Workspace */}
               <div className="flex-1 p-4 sm:p-5 overflow-y-auto font-sans text-xs text-slate-200 space-y-4 custom-scrollbar">
                 {isSolving ? (
                   <div className="flex flex-col items-center justify-center h-64 gap-3 text-cyan-400 font-mono text-xs">
@@ -359,7 +414,6 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                 )}
               </div>
 
-              {/* Input Area with Hands-Free Mic */}
               <div className="p-3 sm:p-4 border-t border-white/10 bg-slate-950/70 flex items-center gap-2">
                 <button
                   onClick={toggleVoice}
@@ -389,7 +443,6 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                 </button>
               </div>
             </div>
-
           </div>
         </motion.div>
       </div>

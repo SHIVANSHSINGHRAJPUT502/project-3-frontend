@@ -1,4 +1,3 @@
-// src/components/AdminPdfsTab.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import SubjectPickerModal from './SubjectPickerModal.jsx';
 
@@ -24,6 +23,19 @@ async function apiFetch(path, options = {}) {
   }
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json();
+}
+
+function getCleanPdfLinks(s3Url, title) {
+  if (!s3Url) return { viewUrl: "#", downloadUrl: "#", fileName: "document.pdf" };
+  const safeBase = (title || "StudyNexus-Document").replace(/[^a-zA-Z0-9-_]/g, "_");
+  const fileName = safeBase.toLowerCase().endsWith(".pdf") ? safeBase : `${safeBase}.pdf`;
+
+  let downloadUrl = s3Url;
+  if (s3Url.includes("res.cloudinary.com") && s3Url.includes("/upload/")) {
+    downloadUrl = s3Url.replace("/upload/", `/upload/fl_attachment:${safeBase}/`);
+  }
+
+  return { viewUrl: s3Url, downloadUrl, fileName };
 }
 
 function Input({ style, ...props }) {
@@ -77,7 +89,6 @@ function Badge({ children, color = "#3b82f6" }) {
   );
 }
 
-// Cloudinary Direct PDF Uploader
 function UploadSection({ onSuccess }) {
   const [file, setFile] = useState(null);
   const [form, setForm] = useState({ title: "", semester: "1", subject: "", type: "notes" });
@@ -167,7 +178,6 @@ function UploadSection({ onSuccess }) {
           {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
         </select>
 
-        {/* Interactive Subject Trigger */}
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -220,7 +230,6 @@ function UploadSection({ onSuccess }) {
   );
 }
 
-// Manual URL Submission
 function ManualSection({ onSuccess }) {
   const [form, setForm] = useState({ title: "", semester: "1", subject: "", type: "notes", s3Url: "" });
   const [adding, setAdding] = useState(false);
@@ -255,7 +264,6 @@ function ManualSection({ onSuccess }) {
           {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
         </select>
 
-        {/* Interactive Subject Trigger */}
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
@@ -301,7 +309,6 @@ function ManualSection({ onSuccess }) {
   );
 }
 
-// Main PDF Library View Export
 export default function AdminPdfsTab() {
   const [pdfs, setPdfs] = useState([]);
   const [view, setView] = useState("upload");
@@ -315,9 +322,9 @@ export default function AdminPdfsTab() {
     load();
   };
 
-  const handleSafePreview = (s3Url, title) => {
-    if (window.confirm(`Are you sure you want to open and review "${title}" in a new tab?`)) {
-      window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(s3Url)}`, '_blank', 'noopener,noreferrer');
+  const handleSafePreview = (viewUrl, title) => {
+    if (window.confirm(`Open "${title}" in a new tab?`)) {
+      window.open(viewUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -344,28 +351,40 @@ export default function AdminPdfsTab() {
             <p style={{ color: "#64748b", margin: 0, fontSize: "14px" }}>No PDFs yet — upload one above</p>
           </div>
         ) : (
-          pdfs.map((pdf, i) => (
-            <div key={pdf._id || i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 1.5rem", borderBottom: i < pdfs.length - 1 ? "1px solid #1e2a3a" : "none", transition: "background 0.15s" }}>
-              <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>📄</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 3px", fontWeight: 500, fontSize: "14px", color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdf.title}</p>
-                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                  <Badge color="#8b5cf6">Sem {pdf.semester}</Badge>
-                  <span style={{ fontSize: "12px", color: "#64748b" }}>{pdf.subject}</span>
-                  <Badge color={pdf.type === 'notes' ? "#3b82f6" : pdf.type === 'pyq' ? "#8b5cf6" : "#10b981"}>
-                    {pdf.type || 'notes'}
-                  </Badge>
+          pdfs.map((pdf, i) => {
+            const { viewUrl, downloadUrl, fileName } = getCleanPdfLinks(pdf.s3Url, pdf.title);
+            return (
+              <div key={pdf._id || i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 1.5rem", borderBottom: i < pdfs.length - 1 ? "1px solid #1e2a3a" : "none", transition: "background 0.15s" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>📄</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: "0 0 3px", fontWeight: 500, fontSize: "14px", color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pdf.title}</p>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <Badge color="#8b5cf6">Sem {pdf.semester}</Badge>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>{pdf.subject}</span>
+                    <Badge color={pdf.type === 'notes' ? "#3b82f6" : pdf.type === 'pyq' ? "#8b5cf6" : "#10b981"}>
+                      {pdf.type || 'notes'}
+                    </Badge>
+                  </div>
                 </div>
+                <button 
+                  onClick={() => handleSafePreview(viewUrl, pdf.title)} 
+                  style={{ fontSize: "12px", color: "#3b82f6", background: "transparent", padding: "4px 10px", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "6px", cursor: "pointer" }}
+                >
+                  View
+                </button>
+                <a
+                  href={downloadUrl}
+                  download={fileName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: "12px", color: "#10b981", textDecoration: "none", padding: "4px 10px", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "6px" }}
+                >
+                  Download
+                </a>
+                <Btn danger onClick={() => remove(pdf._id)} style={{ padding: "4px 10px", fontSize: "12px" }}>Delete</Btn>
               </div>
-              <button 
-                onClick={() => handleSafePreview(pdf.s3Url, pdf.title)} 
-                style={{ fontSize: "12px", color: "#3b82f6", background: "transparent", padding: "4px 10px", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "6px", cursor: "pointer" }}
-              >
-                View
-              </button>
-              <Btn danger onClick={() => remove(pdf._id)} style={{ padding: "4px 10px", fontSize: "12px" }}>Delete</Btn>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
