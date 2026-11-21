@@ -8,22 +8,9 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { playAnyaVoice } from '../utils/voiceAssistant.js';
+import { downloadPdfWithProperName } from '../utils/pdfHelper.js';
 
 const API = import.meta.env.VITE_API_URL || 'https://studynexusbackend.vercel.app';
-
-function getCleanPdfLinks(rawUrl, title) {
-  if (!rawUrl) return { viewUrl: null, downloadUrl: null, fileName: 'StudyNexus-Document.pdf' };
-
-  const safeBase = (title || 'StudyNexus-Document').replace(/[^a-zA-Z0-9-_]/g, '_');
-  const fileName = safeBase.toLowerCase().endsWith('.pdf') ? safeBase : `${safeBase}.pdf`;
-
-  let downloadUrl = rawUrl;
-  if (rawUrl.includes('res.cloudinary.com') && rawUrl.includes('/upload/')) {
-    downloadUrl = rawUrl.replace('/upload/', `/upload/fl_attachment:${safeBase}/`);
-  }
-
-  return { viewUrl: rawUrl, downloadUrl, fileName };
-}
 
 export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] }) => {
   const availableDocs = documentsList && documentsList.length > 0 
@@ -35,6 +22,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
   const [prompt, setPrompt] = useState('');
   const [solution, setSolution] = useState('');
   const [isSolving, setIsSolving] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
@@ -48,7 +36,15 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
 
   const currentDoc = selectedDoc || paperData || {};
   const pdfTargetUrl = currentDoc.url || currentDoc.s3Url;
-  const { viewUrl, downloadUrl, fileName } = getCleanPdfLinks(pdfTargetUrl, currentDoc.title);
+
+  const handleDownload = () => {
+    downloadPdfWithProperName(
+      pdfTargetUrl,
+      currentDoc.title,
+      () => setIsDownloading(true),
+      () => setIsDownloading(false)
+    );
+  };
 
   const handleSolveQuestion = async (customPrompt) => {
     const query = customPrompt || prompt;
@@ -228,29 +224,28 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {viewUrl && (
-                <a
-                  href={viewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Open PDF in new tab"
-                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 text-xs font-semibold transition"
-                >
-                  <ExternalLink size={13} />
-                  <span>View</span>
-                </a>
-              )}
-              {downloadUrl && (
-                <a
-                  href={downloadUrl}
-                  download={fileName}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition"
-                >
-                  <Download size={13} />
-                  <span>Download</span>
-                </a>
+              {pdfTargetUrl && (
+                <>
+                  <a
+                    href={pdfTargetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open PDF in new tab"
+                    className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-200 text-xs font-semibold transition"
+                  >
+                    <ExternalLink size={13} />
+                    <span>View</span>
+                  </a>
+                  <button
+                    type="button"
+                    disabled={isDownloading}
+                    onClick={handleDownload}
+                    className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition disabled:opacity-50"
+                  >
+                    {isDownloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                    <span>Download</span>
+                  </button>
+                </>
               )}
               <button
                 onClick={onClose}
@@ -302,9 +297,9 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                   <Layers size={13} className="text-cyan-400 shrink-0" />
                   <span className="truncate">DOCUMENT WORKSPACE • {currentDoc.title}</span>
                 </span>
-                {viewUrl && (
+                {pdfTargetUrl && (
                   <a
-                    href={viewUrl}
+                    href={pdfTargetUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-cyan-400 hover:underline shrink-0 ml-2"
@@ -315,9 +310,9 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
               </div>
 
               <div className="flex-1 w-full h-full bg-slate-900/20 relative">
-                {viewUrl ? (
+                {pdfTargetUrl ? (
                   <object
-                    data={`${viewUrl}#toolbar=1&navpanes=0`}
+                    data={`${pdfTargetUrl}#toolbar=1&navpanes=0`}
                     type="application/pdf"
                     className="w-full h-full"
                   >
@@ -333,7 +328,7 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-3">
                         <a
-                          href={viewUrl}
+                          href={pdfTargetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs flex items-center gap-1.5"
@@ -341,16 +336,15 @@ export const ExamPaperModal = ({ isOpen, onClose, paperData, documentsList = [] 
                           <ExternalLink size={14} />
                           View PDF
                         </a>
-                        <a
-                          href={downloadUrl}
-                          download={fileName}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-emerald-300 font-semibold text-xs flex items-center gap-1.5"
+                        <button
+                          type="button"
+                          disabled={isDownloading}
+                          onClick={handleDownload}
+                          className="px-4 py-2 rounded-xl bg-slate-800 border border-white/10 text-emerald-300 font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50"
                         >
-                          <Download size={14} />
+                          {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                           Download .PDF
-                        </a>
+                        </button>
                       </div>
                     </div>
                   </object>

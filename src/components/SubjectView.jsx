@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { BookOpen, AlertTriangle, FileText, GraduationCap, ScrollText, Sparkles, Download } from 'lucide-react';
+import { BookOpen, AlertTriangle, FileText, GraduationCap, ScrollText, Sparkles, Download, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { GlassCard } from './GlassCard';
 import AiStudyModal from './AiStudyModal';
+import { downloadPdfWithProperName } from '../utils/pdfHelper';
 
 const API = import.meta.env.VITE_API_URL || "https://studynexusbackend.vercel.app";
 
@@ -13,27 +14,13 @@ const TYPE_CONFIG = {
   syllabus:  { label: 'Syllabus',                icon: GraduationCap, color: '#10b981', bg: '#10b98115', desc: 'Course outline and topics' },
 };
 
-function getCleanPdfLinks(rawUrl, title) {
-  if (!rawUrl) return { viewUrl: '#', downloadUrl: '#', fileName: 'StudyNexus-Document.pdf' };
-
-  const safeBase = (title || 'StudyNexus-Document').replace(/[^a-zA-Z0-9-_]/g, '_');
-  const fileName = safeBase.toLowerCase().endsWith('.pdf') ? safeBase : `${safeBase}.pdf`;
-
-  let downloadUrl = rawUrl;
-  if (rawUrl.includes('res.cloudinary.com') && rawUrl.includes('/upload/')) {
-    downloadUrl = rawUrl.replace('/upload/', `/upload/fl_attachment:${safeBase}/`);
-  }
-
-  return { viewUrl: rawUrl, downloadUrl, fileName };
-}
-
 export const SubjectView = () => {
   const { semId, subjectName } = useParams();
   const [activeType, setActiveType] = useState('notes');
   const [pdfs, setPdfs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  const [downloadingId, setDownloadingId] = useState(null);
   const [selectedAiPdf, setSelectedAiPdf] = useState(null);
 
   useEffect(() => {
@@ -138,7 +125,7 @@ export const SubjectView = () => {
         {!loading && !error && pdfs.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {pdfs.map((pdf) => {
-              const { viewUrl, downloadUrl, fileName } = getCleanPdfLinks(pdf.s3Url, pdf.title);
+              const isDownloading = downloadingId === pdf._id;
 
               return (
                 <GlassCard key={pdf._id} className="relative group border-white/5 hover:border-blue-500/20 flex flex-col justify-between">
@@ -172,7 +159,7 @@ export const SubjectView = () => {
 
                   <div className="pl-2 pt-4 mt-3 border-t border-white/5 flex items-center gap-2">
                     <a
-                      href={viewUrl}
+                      href={pdf.s3Url || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-2 bg-slate-800/80 hover:bg-slate-700 text-center rounded-xl text-xs font-bold text-slate-200 transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95"
@@ -182,16 +169,27 @@ export const SubjectView = () => {
                     </a>
 
                     {pdf.s3Url && (
-                      <a
-                        href={downloadUrl}
-                        download={fileName}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-slate-800/80 hover:bg-blue-600 hover:text-white rounded-xl text-slate-300 transition-all border border-white/5 flex items-center justify-center active:scale-95"
+                      <button
+                        type="button"
+                        disabled={isDownloading}
+                        onClick={() =>
+                          downloadPdfWithProperName(
+                            pdf.s3Url,
+                            pdf.title,
+                            () => setDownloadingId(pdf._id),
+                            () => setDownloadingId(null)
+                          )
+                        }
+                        className="px-3 py-2 bg-slate-800/80 hover:bg-blue-600 hover:text-white rounded-xl text-slate-300 text-xs font-semibold transition-all border border-white/5 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                         title="Download PDF"
                       >
-                        <Download size={14} />
-                      </a>
+                        {isDownloading ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Download size={14} />
+                        )}
+                        <span>Download</span>
+                      </button>
                     )}
                   </div>
                 </GlassCard>
